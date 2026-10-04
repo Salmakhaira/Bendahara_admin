@@ -1,0 +1,34 @@
+# Kas Keluarga
+
+Aplikasi catatan kas keluarga besar. **Keluarga** hanya bisa melihat saldo dan catatan;
+**bendahara (admin)** satu-satunya yang bisa menambah, mengubah, dan menghapus.
+
+| Halaman | Untuk | Isi |
+|---|---|---|
+| `/` | Keluarga | Saldo, filter bulan/jenis/kata kunci, ringkasan per bulan, catatan + bukti, unduh CSV, cetak |
+| `/riwayat` | Keluarga | Log otomatis setiap tambah/ubah/hapus (tidak bisa dihapus) |
+| `/bendahara` | Admin | Login, catat, ubah, hapus catatan, unggah bukti |
+
+## Pasang dari awal
+
+1. **Supabase**: buat proyek. Di *Authentication > Users > Add user*, buat akun email + kata sandi Anda,
+   lalu matikan *Allow new users to sign up*.
+2. Buka `schema.sql`, **ganti email di baris paling bawah** dengan email akun tadi, lalu jalankan seluruh isinya
+   di *SQL Editor*.
+3. Salin `.env.example` menjadi `.env.local`, isi URL dan anon key (*Project Settings > API*).
+4. `npm install && npm run dev`
+5. Deploy: push ke GitHub, import di Vercel, isi 2 environment variable yang sama.
+
+## Sudah punya versi lama?
+
+Data lama aman. Cukup jalankan `schema.sql` yang baru (sudah idempoten, boleh diulang), dengan email Anda di baris
+paling bawah. Skema ini menambah: kolom `kategori`, tabel `admins`, riwayat perubahan, ringkasan bulanan, dan
+kebijakan penyimpanan foto yang lebih ketat. Setelah itu Anda **tidak perlu lagi** mengubah data lewat Table Editor.
+
+## Keamanan
+
+- Hak ubah dijaga di **database** (Row Level Security + tabel `admins`), bukan hanya disembunyikan di tampilan.
+  Anon key yang terlihat di browser hanya bisa *membaca*.
+- Data tampil untuk siapa pun yang memegang tautannya (tanpa login) dan tidak diindeks Google.
+  Bagikan tautan hanya di grup keluarga.
+- Foto bukti: hanya gambar, maks 5 MB, otomatis dikecilkan di HP sebelum diunggah.
