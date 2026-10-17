@@ -13,7 +13,7 @@ export default function Kepala({ children }) {
         <nav className="bar-nav" aria-label="Menu utama">
           {children ?? (
             <>
-              <Link href="/riwayat">Riwayat</Link>
+              <Link href="/riwayat" className="hide-hp">Riwayat</Link>
               <Link href="/bendahara" className="btn kecil terang">Bendahara</Link>
             </>
           )}
