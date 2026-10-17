@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { rp, tgl, waktu } from '../../lib/format'
+import { rp, tgl, waktu, bulanLabel } from '../../lib/format'
 import Kepala from '../components/Kepala'
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +9,7 @@ export const metadata = { title: 'Riwayat perubahan — Kas Keluarga' }
 const NAMA = { tambah: 'Ditambahkan', ubah: 'Diubah', hapus: 'Dihapus' }
 const LABEL = {
   tanggal: 'Tanggal', tipe: 'Jenis', jumlah: 'Jumlah', dari: 'Dari', ke: 'Untuk',
-  alasan: 'Keperluan', kategori: 'Kategori', bukti_path: 'Bukti',
+  alasan: 'Keperluan', kategori: 'Kategori', periode: 'Untuk bulan iuran', bukti_path: 'Bukti',
 }
 
 const tampil = (k, v) => {
@@ -17,6 +17,7 @@ const tampil = (k, v) => {
   if (k === 'jumlah') return rp(v)
   if (k === 'tanggal') return tgl(v)
   if (k === 'tipe') return v === 'masuk' ? 'Uang masuk' : 'Uang keluar'
+  if (k === 'periode') return bulanLabel(v)
   if (k === 'bukti_path') return 'ada foto'
   return String(v)
 }
@@ -68,7 +69,7 @@ export default async function Riwayat() {
             )
           })}
         </div>
-        <p><Link href="/">Kembali ke halaman utama</Link></p>
+        <p><Link href="/laporan">Kembali ke laporan</Link></p>
       </main>
     </>
   )

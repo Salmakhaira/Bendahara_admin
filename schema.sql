@@ -39,6 +39,64 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from admins where user_id = auth.uid());
 $$;
 
+-- 2b. ANGGOTA & IURAN ----------------------------------------
+-- Daftar anggota yang membayar iuran. `iuran_bulanan` = nominal per bulan
+-- (0 = tidak wajib iuran). `mulai_iuran` = bulan pertama ia ditagih, supaya
+-- bulan sebelum itu tidak dihitung "belum bayar".
+create table if not exists anggota (
+  id uuid primary key default gen_random_uuid(),
+  nama text not null check (length(trim(nama)) > 0),
+  iuran_bulanan bigint not null default 0 check (iuran_bulanan >= 0),
+  mulai_iuran date not null default date_trunc('month', now())::date,
+  aktif boolean not null default true,
+  catatan text,
+  dibuat_pada timestamptz default now()
+);
+create unique index if not exists anggota_nama_unik on anggota (lower(nama));
+
+-- Setiap pembayaran iuran ditandai: siapa (anggota_id) dan untuk bulan apa (periode).
+alter table transaksi add column if not exists anggota_id uuid references anggota (id) on delete set null;
+alter table transaksi add column if not exists periode date;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'transaksi_periode_awal_bulan') then
+    alter table transaksi add constraint transaksi_periode_awal_bulan
+      check (periode is null or periode = date_trunc('month', periode)::date);
+  end if;
+end $$;
+create index if not exists transaksi_iuran_idx on transaksi (anggota_id, periode);
+
+alter table anggota enable row level security;
+drop policy if exists "semua boleh lihat anggota" on anggota;
+drop policy if exists "bendahara tambah anggota" on anggota;
+drop policy if exists "bendahara ubah anggota" on anggota;
+drop policy if exists "bendahara hapus anggota" on anggota;
+create policy "semua boleh lihat anggota" on anggota for select to anon, authenticated using (true);
+create policy "bendahara tambah anggota" on anggota for insert to authenticated with check (is_admin());
+create policy "bendahara ubah anggota" on anggota for update to authenticated using (is_admin()) with check (is_admin());
+create policy "bendahara hapus anggota" on anggota for delete to authenticated using (is_admin());
+
+-- 2c. PENGATURAN (info pembayaran untuk keluarga) --------------
+-- Hanya satu baris (id = 1). Ditampilkan di halaman Info.
+create table if not exists pengaturan (
+  id int primary key default 1 check (id = 1),
+  nama_kas text not null default 'Kas Keluarga',
+  bank text,
+  no_rekening text,
+  atas_nama text,
+  tanggal_jatuh_tempo int check (tanggal_jatuh_tempo between 1 and 28),
+  info text,
+  pengurus text
+);
+insert into pengaturan (id) values (1) on conflict do nothing;
+
+alter table pengaturan enable row level security;
+drop policy if exists "semua boleh lihat pengaturan" on pengaturan;
+drop policy if exists "bendahara tambah pengaturan" on pengaturan;
+drop policy if exists "bendahara ubah pengaturan" on pengaturan;
+create policy "semua boleh lihat pengaturan" on pengaturan for select to anon, authenticated using (true);
+create policy "bendahara tambah pengaturan" on pengaturan for insert to authenticated with check (is_admin());
+create policy "bendahara ubah pengaturan" on pengaturan for update to authenticated using (is_admin()) with check (is_admin());
+
 -- 3. KEAMANAN BARIS (RLS) ------------------------------------
 alter table transaksi enable row level security;
 

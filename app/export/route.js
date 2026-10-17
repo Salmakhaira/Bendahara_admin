@@ -22,12 +22,13 @@ export async function GET(req) {
     if (data.length < 1000) break
   }
 
-  const kepala = ['Tanggal', 'Jenis', 'Kategori', 'Jumlah (Rp)', 'Dari', 'Untuk', 'Keperluan']
+  const kepala = ['Tanggal', 'Jenis', 'Kategori', 'Jumlah (Rp)', 'Dari', 'Untuk', 'Keperluan', 'Untuk bulan']
   const isi = baris.map((t) =>
     [
       t.tanggal, t.tipe === 'masuk' ? 'Masuk' : 'Keluar', t.kategori,
       t.tipe === 'masuk' ? t.jumlah : -t.jumlah,
       t.dari || 'Kas keluarga', t.ke || 'Kas keluarga', t.alasan,
+      t.periode ? String(t.periode).slice(0, 7) : '',
     ].map(sel).join(';')
   )
 
