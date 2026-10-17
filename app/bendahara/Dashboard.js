@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { rp, tgl, KATEGORI, hariIni } from '../../lib/format'
 import { kecilkan } from '../../lib/gambar'
+import Kepala from '../components/Kepala'
 import Kartu from '../components/Kartu'
 
 const KOSONG = () => ({ tipe: 'masuk', tanggal: hariIni(), jumlah: '', kategori: '', dari: '', ke: '', alasan: '' })
@@ -133,106 +134,127 @@ export default function Dashboard({ email }) {
   }
 
   return (
-    <main>
-      <h1>Halaman bendahara</h1>
-      <p className="redup-teks">Masuk sebagai {email}</p>
+    <>
+      <Kepala>
+        <Link href="/">Beranda</Link>
+        <Link href="/riwayat">Riwayat</Link>
+        <button className="btn kecil terang" onClick={() => supabase.auth.signOut()}>Keluar</button>
+      </Kepala>
 
-      {ringkas && (
-        <section className="saldo kecil" aria-label="Saldo kas">
-          <p>Uang kas sekarang</p>
-          <strong>{rp(ringkas.saldo)}</strong>
-        </section>
-      )}
+      <main className="wrap">
+        <h1 className="sr">Halaman bendahara</h1>
+        <div className="tata admin">
+          <aside className="samping">
+            {ringkas && (
+              <section className="saldo kecil" aria-label="Saldo kas">
+                <p>Uang kas sekarang</p>
+                <strong>{rp(ringkas.saldo)}</strong>
+                <p className="akun">Masuk sebagai {email}</p>
+              </section>
+            )}
 
-      <h2 ref={formRef}>{edit ? 'Ubah catatan' : 'Catat transaksi'}</h2>
-      {edit && (
-        <div className="notif info">
-          Sedang mengubah catatan tanggal {tgl(edit.tanggal)}. Perubahan akan tercatat di riwayat.
-        </div>
-      )}
+            <form className="panel form" onSubmit={simpan} noValidate>
+              <h2 ref={formRef}>{edit ? 'Ubah catatan' : 'Catat transaksi'}</h2>
+              {edit && (
+                <div className="notif info">
+                  Sedang mengubah catatan tanggal {tgl(edit.tanggal)}. Perubahan akan tercatat di riwayat.
+                </div>
+              )}
 
-      <form onSubmit={simpan} noValidate>
-        <fieldset className="segmen">
-          <legend>Jenis</legend>
-          <label className={masuk ? 'pilih masuk' : 'pilih'}>
-            <input type="radio" name="tipe" value="masuk" checked={masuk} onChange={set('tipe')} />
-            ↑ Uang masuk
-          </label>
-          <label className={!masuk ? 'pilih keluar' : 'pilih'}>
-            <input type="radio" name="tipe" value="keluar" checked={!masuk} onChange={set('tipe')} />
-            ↓ Uang keluar
-          </label>
-        </fieldset>
+              <fieldset className="segmen">
+                <legend>Jenis</legend>
+                <label className={masuk ? 'pilih masuk' : 'pilih'}>
+                  <input type="radio" name="tipe" value="masuk" checked={masuk} onChange={set('tipe')} />
+                  ↑ Uang masuk
+                </label>
+                <label className={!masuk ? 'pilih keluar' : 'pilih'}>
+                  <input type="radio" name="tipe" value="keluar" checked={!masuk} onChange={set('tipe')} />
+                  ↓ Uang keluar
+                </label>
+              </fieldset>
 
-        <label>Tanggal
-          <input type="date" required value={form.tanggal} onChange={set('tanggal')} />
-        </label>
+              <div className="grid2">
+                <label className="f">Tanggal
+                  <input type="date" required value={form.tanggal} onChange={set('tanggal')} />
+                </label>
+                <label className="f">Jumlah (Rp)
+                  <input
+                    inputMode="numeric" autoComplete="off" placeholder="0" required
+                    value={titik(form.jumlah)}
+                    onChange={(e) => setForm((f) => ({ ...f, jumlah: digit(e.target.value) }))}
+                  />
+                </label>
+              </div>
 
-        <label>Jumlah (Rp)
-          <input
-            inputMode="numeric" autoComplete="off" placeholder="0" required
-            value={titik(form.jumlah)}
-            onChange={(e) => setForm((f) => ({ ...f, jumlah: digit(e.target.value) }))}
-          />
-        </label>
+              <label className="f">Kategori <small>(boleh dikosongkan)</small>
+                <select value={form.kategori} onChange={set('kategori')}>
+                  <option value="">Pilih kategori</option>
+                  {KATEGORI.map((k) => <option key={k}>{k}</option>)}
+                  {form.kategori && !KATEGORI.includes(form.kategori) && <option>{form.kategori}</option>}
+                </select>
+              </label>
 
-        <label>Kategori <small>(boleh dikosongkan)</small>
-          <select value={form.kategori} onChange={set('kategori')}>
-            <option value="">— Pilih kategori —</option>
-            {KATEGORI.map((k) => <option key={k}>{k}</option>)}
-            {form.kategori && !KATEGORI.includes(form.kategori) && <option>{form.kategori}</option>}
-          </select>
-        </label>
+              <div className="grid2">
+                <label className="f">Dari siapa {masuk ? <b className="wajib">wajib</b> : <small>(kosong = kas)</small>}
+                  <input value={form.dari} onChange={set('dari')} autoComplete="off" />
+                </label>
+                <label className="f">Untuk siapa {!masuk ? <b className="wajib">wajib</b> : <small>(kosong = kas)</small>}
+                  <input value={form.ke} onChange={set('ke')} autoComplete="off" />
+                </label>
+              </div>
 
-        <label>Dari siapa {masuk ? <b className="wajib">wajib</b> : <small>(kosongkan jika dari kas)</small>}
-          <input value={form.dari} onChange={set('dari')} autoComplete="off" />
-        </label>
-        <label>Untuk siapa {!masuk ? <b className="wajib">wajib</b> : <small>(kosongkan jika ke kas)</small>}
-          <input value={form.ke} onChange={set('ke')} autoComplete="off" />
-        </label>
-        <label>Keperluan <b className="wajib">wajib</b>
-          <input value={form.alasan} onChange={set('alasan')} autoComplete="off" />
-        </label>
+              <label className="f">Keperluan <b className="wajib">wajib</b>
+                <input value={form.alasan} onChange={set('alasan')} autoComplete="off" />
+              </label>
 
-        <label>{edit?.bukti_path ? 'Ganti foto bukti' : 'Bukti transfer (foto)'}
-          <input key={kunciFile} ref={fileRef} type="file" accept="image/*" />
-        </label>
-        {edit?.bukti_path && (
-          <label className="centang">
-            <input type="checkbox" checked={hapusBukti} onChange={(e) => setHapusBukti(e.target.checked)} />
-            Hapus foto bukti yang sekarang
-          </label>
-        )}
+              <label className="f">{edit?.bukti_path ? 'Ganti foto bukti' : 'Foto bukti transfer'} <small>(boleh dikosongkan)</small>
+                <input key={kunciFile} ref={fileRef} type="file" accept="image/*" />
+              </label>
+              {edit?.bukti_path && (
+                <label className="centang">
+                  <input type="checkbox" checked={hapusBukti} onChange={(e) => setHapusBukti(e.target.checked)} />
+                  Hapus foto bukti yang sekarang
+                </label>
+              )}
 
-        <button disabled={sibuk}>{sibuk ? 'Menyimpan...' : edit ? 'Simpan perubahan' : 'Simpan catatan'}</button>
-        {edit && <button type="button" className="abu" onClick={batal} disabled={sibuk}>Batal mengubah</button>}
-        {pesan && <div className={'notif ' + pesan.jenis} role={pesan.jenis === 'err' ? 'alert' : 'status'}>{pesan.teks}</div>}
-      </form>
+              <div className="form-aksi">
+                <button className="btn" disabled={sibuk}>{sibuk ? 'Menyimpan...' : edit ? 'Simpan perubahan' : 'Simpan catatan'}</button>
+                {edit && <button type="button" className="btn garis" onClick={batal} disabled={sibuk}>Batal mengubah</button>}
+              </div>
+              {pesan && <div className={'notif ' + pesan.jenis} role={pesan.jenis === 'err' ? 'alert' : 'status'}>{pesan.teks}</div>}
+            </form>
+          </aside>
 
-      <h2>Semua catatan</h2>
-      <p className="hitung">Menampilkan {daftar.length} dari {total} catatan</p>
-      {daftar.map((t) => (
-        <Kartu
-          key={t.id}
-          t={t}
-          aksi={
-            <div className="aksi">
-              <button type="button" className="abu" onClick={() => mulaiUbah(t)} disabled={sibuk}>Ubah</button>
-              <button type="button" className="bahaya" onClick={() => hapus(t)} disabled={sibuk}>Hapus</button>
+          <div className="utama">
+            <div className="alat">
+              <h2>Semua catatan</h2>
             </div>
-          }
-        />
-      ))}
-      {!daftar.length && <p className="kosong">Belum ada catatan.</p>}
-      {daftar.length < total && (
-        <button type="button" className="abu" onClick={() => setBatas((b) => b + PER)}>Tampilkan lebih banyak</button>
-      )}
+            <p className="hitung">Menampilkan {daftar.length} dari {total} catatan</p>
 
-      <hr />
-      <button className="abu" onClick={() => supabase.auth.signOut()}>Keluar akun</button>
-      <p>
-        <Link href="/">Lihat halaman utama</Link> · <Link href="/riwayat">Riwayat perubahan</Link>
-      </p>
-    </main>
+            {daftar.length > 0 ? (
+              <div className="buku">
+                {daftar.map((t) => (
+                  <Kartu
+                    key={t.id}
+                    t={t}
+                    aksi={
+                      <>
+                        <button type="button" className="btn kecil garis" onClick={() => mulaiUbah(t)} disabled={sibuk}>Ubah</button>
+                        <button type="button" className="btn kecil bahaya" onClick={() => hapus(t)} disabled={sibuk}>Hapus</button>
+                      </>
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="kosong">Belum ada catatan. Isi formulir untuk mencatat transaksi pertama.</p>
+            )}
+            {daftar.length < total && (
+              <button type="button" className="btn garis blok" onClick={() => setBatas((b) => b + PER)}>Tampilkan lebih banyak</button>
+            )}
+          </div>
+        </div>
+      </main>
+    </>
   )
 }
