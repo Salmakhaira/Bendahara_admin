@@ -360,3 +360,4 @@ a.ang:hover{background:var(--primer-bg)}
 .donatur li{display:flex;justify-content:space-between;gap:1rem;padding:.5rem 0;border-bottom:1px solid var(--garis)}
 .donatur li:last-child{border-bottom:0}
 .lencana.program{background:var(--masuk-bg);color:#0b5a2d}
+.panel.form,.panel{min-width:0}

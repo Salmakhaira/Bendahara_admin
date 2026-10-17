@@ -33,7 +33,7 @@ Kas ini **sukarela**: tidak ada iuran wajib atau tagihan. Uang masuk adalah sumb
 
 **Keluarga** (menu bawah di HP, menu atas di laptop): Beranda (saldo, program berjalan, cara berdonasi), Program (daftar dan detail program, ucapan terima kasih kepada penyumbang), Catatan, Laporan (per bulan, bisa dicetak / simpan PDF, ada ringkasan per program), Info (rekening, pengurus, cara pasang di layar utama HP).
 
-**Bendahara** (`/bendahara`): Ringkasan, Program (buat, ubah, tandai selesai), Catat (pilih nama dari daftar, pilih program), Catatan (ubah / hapus), Kelola (Daftar nama, Pengaturan, Impor CSV, Riwayat, Unduh cadangan).
+**Bendahara** (`/bendahara`): Ringkasan, Program (buat, ubah, tandai selesai), Catat (pilih nama dari daftar, pilih program), Catatan (ubah / hapus), Kelola (Daftar nama, Pengaturan, Impor Excel/CSV, Riwayat, Unduh cadangan).
 
 **WhatsApp**: bagikan ringkasan saldo, catatan baru, dan ajakan berdonasi per program (tanpa menyebut nama siapa pun).
 
@@ -42,7 +42,7 @@ Kas ini **sukarela**: tidak ada iuran wajib atau tagihan. Uang masuk adalah sumb
 ### Setelah update
 1. Jalankan ulang `schema.sql` di Supabase SQL Editor (aman diulang; menambah tabel `program` dan kolom `program_id`). Kolom iuran dari versi sebelumnya dibiarkan, tidak dipakai.
 2. **Kelola > Program**: buat program pertama. **Kelola > Pengaturan**: isi rekening.
-3. Catatan lama bisa diimpor lewat **Kelola > Impor** (CSV, kolom `program` memakai nama program yang sudah dibuat).
+3. Catatan lama bisa diimpor lewat **Kelola > Impor**: unduh template Excel (.xlsx), isi, lalu unggah. Kolom: Tanggal, Bulan, Uang Masuk, Uang Keluar, Total, Keterangan (opsional: Dari, Untuk, Kategori, Program; nama program harus sudah dibuat). File CSV juga masih bisa dipakai.
 
 ### Catatan privasi
 Nama penyumbang dan jumlahnya bisa dibaca siapa pun yang memegang tautan situs (sama seperti catatan kas). Jangan isi data sensitif di kolom catatan.
