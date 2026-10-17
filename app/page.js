@@ -5,6 +5,7 @@ import { bacaFilter, terapkanFilter, urutan, qs } from '../lib/query'
 import Kepala from './components/Kepala'
 import Kartu from './components/Kartu'
 import CetakTombol from './components/CetakTombol'
+import Saldo from './components/Saldo'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,14 +63,7 @@ export default async function Home({ searchParams }) {
         <h1 className="sr">Kas Keluarga</h1>
         <div className="tata">
           <aside className="samping">
-            <section className="saldo" aria-label="Saldo kas saat ini">
-              <p>Uang kas sekarang</p>
-              <strong>{rp(r?.saldo)}</strong>
-              <dl className="dua">
-                <div><dt>Total masuk</dt><dd>{rp(r?.total_masuk)}</dd></div>
-                <div><dt>Total keluar</dt><dd>{rp(r?.total_keluar)}</dd></div>
-              </dl>
-            </section>
+            <Saldo r={r} />
             <p className="jaminan">
               Hanya bendahara yang bisa mengubah catatan. Setiap perubahan tercatat di{' '}
               <Link href="/riwayat">riwayat perubahan</Link>.
@@ -88,9 +82,9 @@ export default async function Home({ searchParams }) {
               </label>
               <label className="f">Jenis
                 <select name="tipe" defaultValue={filter.tipe}>
-                  <option value="">Semua jenis</option>
-                  <option value="masuk">Hanya masuk</option>
-                  <option value="keluar">Hanya keluar</option>
+                  <option value="">Semua</option>
+                  <option value="masuk">Masuk</option>
+                  <option value="keluar">Keluar</option>
                 </select>
               </label>
               <label className="f cari">Cari
