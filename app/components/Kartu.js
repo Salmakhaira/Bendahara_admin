@@ -1,27 +1,36 @@
 import { rp, tgl } from '../../lib/format'
 import { buktiUrl } from '../../lib/supabase'
 
-// Kartu satu catatan. `aksi` (opsional) = tombol tambahan untuk halaman bendahara.
+// Satu baris catatan (seperti baris buku kas).
+// `aksi` (opsional) = tombol tambahan untuk halaman bendahara.
 export default function Kartu({ t, aksi }) {
   const masuk = t.tipe === 'masuk'
   return (
-    <article className={'kartu ' + t.tipe}>
-      <div className="baris">
-        <b>{masuk ? '↑ Uang masuk' : '↓ Uang keluar'}</b>
-        <span>{tgl(t.tanggal)}</span>
+    <article className={'tx ' + t.tipe}>
+      <div className="tx-tgl">
+        <time dateTime={t.tanggal}>{tgl(t.tanggal)}</time>
+        <span className="tipe">{masuk ? '↑ Masuk' : '↓ Keluar'}</span>
       </div>
-      <div className="jumlah">{(masuk ? '+ ' : '− ') + rp(t.jumlah)}</div>
-      {t.kategori && <span className="lencana">{t.kategori}</span>}
-      <p><span className="label">Dari:</span> {t.dari || 'Kas keluarga'}</p>
-      <p><span className="label">Untuk:</span> {t.ke || 'Kas keluarga'}</p>
-      <p><span className="label">Keperluan:</span> {t.alasan}</p>
-      {t.bukti_path && (
-        <p>
-          <a href={buktiUrl(t.bukti_path)} target="_blank" rel="noreferrer">Lihat bukti transfer</a>
+
+      <div className="tx-jumlah">{(masuk ? '+ ' : '− ') + rp(t.jumlah)}</div>
+
+      <div className="tx-isi">
+        <h3>{t.alasan}</h3>
+        <p className="tx-pihak">
+          Dari <b>{t.dari || 'Kas keluarga'}</b> ke <b>{t.ke || 'Kas keluarga'}</b>
         </p>
-      )}
-      {t.diubah_pada && <small className="diubah">Catatan ini pernah diperbarui bendahara</small>}
-      {aksi}
+        {(t.kategori || t.bukti_path || t.diubah_pada) && (
+          <div className="tx-meta">
+            {t.kategori && <span className="lencana">{t.kategori}</span>}
+            {t.bukti_path && (
+              <a href={buktiUrl(t.bukti_path)} target="_blank" rel="noreferrer">Lihat bukti transfer</a>
+            )}
+            {t.diubah_pada && <small>Sudah diperbarui bendahara</small>}
+          </div>
+        )}
+      </div>
+
+      {aksi && <div className="tx-aksi">{aksi}</div>}
     </article>
   )
 }
