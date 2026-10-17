@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { rp, tgl, waktu } from '../../lib/format'
+import Kepala from '../components/Kepala'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Riwayat perubahan — Kas Keluarga' }
@@ -29,41 +30,46 @@ export default async function Riwayat() {
     .from('transaksi_log').select('*').order('waktu', { ascending: false }).limit(100)
 
   return (
-    <main>
-      <h1>Riwayat perubahan</h1>
-      <p>
-        Setiap kali bendahara menambah, mengubah, atau menghapus catatan, kejadiannya tercatat otomatis
-        di sini dan tidak bisa dihapus. Supaya semua keluarga bisa memantau.
-      </p>
+    <>
+      <Kepala />
+      <main className="wrap sempit">
+        <h1>Riwayat perubahan</h1>
+        <p className="pengantar">
+          Setiap kali bendahara menambah, mengubah, atau menghapus catatan, kejadiannya tercatat otomatis
+          di sini dan tidak bisa dihapus, sehingga semua keluarga bisa ikut memantau.
+        </p>
 
-      {error && <div className="notif err" role="alert">Riwayat belum bisa dimuat.</div>}
-      {!error && !data?.length && <p className="kosong">Belum ada riwayat.</p>}
+        {error && <div className="notif err" role="alert">Riwayat belum bisa dimuat. Coba muat ulang halaman.</div>}
+        {!error && !data?.length && <p className="kosong">Belum ada perubahan yang tercatat.</p>}
 
-      {(data ?? []).map((l) => {
-        const d = l.data_baru ?? l.data_lama
-        return (
-          <article key={l.id} className={'kartu log ' + l.aksi}>
-            <div className="baris">
-              <b>{NAMA[l.aksi]}</b>
-              <span>{waktu(l.waktu)}</span>
-            </div>
-            <p>
-              {d.tipe === 'masuk' ? 'Uang masuk' : 'Uang keluar'} {rp(d.jumlah)} — {d.alasan}
-              {' '}({tgl(d.tanggal)})
-            </p>
-            {l.aksi === 'ubah' && (
-              <ul>
-                {beda(l.data_lama, l.data_baru).map((k) => (
-                  <li key={k}>
-                    {LABEL[k]}: {tampil(k, l.data_lama[k])} → <b>{tampil(k, l.data_baru[k])}</b>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </article>
-        )
-      })}
-      <p><Link href="/">Kembali ke halaman utama</Link></p>
-    </main>
+        <div className="buku">
+          {(data ?? []).map((l) => {
+            const d = l.data_baru ?? l.data_lama
+            return (
+              <article key={l.id} className={'log ' + l.aksi}>
+                <div className="log-kepala">
+                  <span className="aksi-tag">{NAMA[l.aksi]}</span>
+                  <time>{waktu(l.waktu)}</time>
+                </div>
+                <p className="log-isi">
+                  {d.tipe === 'masuk' ? 'Uang masuk' : 'Uang keluar'} <b>{rp(d.jumlah)}</b> untuk {d.alasan}
+                  <span className="redup"> (tanggal {tgl(d.tanggal)})</span>
+                </p>
+                {l.aksi === 'ubah' && (
+                  <ul>
+                    {beda(l.data_lama, l.data_baru).map((k) => (
+                      <li key={k}>
+                        {LABEL[k]}: {tampil(k, l.data_lama[k])} menjadi <b>{tampil(k, l.data_baru[k])}</b>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            )
+          })}
+        </div>
+        <p><Link href="/">Kembali ke halaman utama</Link></p>
+      </main>
+    </>
   )
 }
