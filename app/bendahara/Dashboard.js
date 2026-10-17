@@ -6,6 +6,7 @@ import { rp, tgl, KATEGORI, hariIni } from '../../lib/format'
 import { kecilkan } from '../../lib/gambar'
 import Kepala from '../components/Kepala'
 import Kartu from '../components/Kartu'
+import Saldo from '../components/Saldo'
 
 const KOSONG = () => ({ tipe: 'masuk', tanggal: hariIni(), jumlah: '', kategori: '', dari: '', ke: '', alasan: '' })
 const digit = (s) => s.replace(/\D/g, '').slice(0, 13)
@@ -137,7 +138,7 @@ export default function Dashboard({ email }) {
     <>
       <Kepala>
         <Link href="/">Beranda</Link>
-        <Link href="/riwayat">Riwayat</Link>
+        <Link href="/riwayat" className="hide-hp">Riwayat</Link>
         <button className="btn kecil terang" onClick={() => supabase.auth.signOut()}>Keluar</button>
       </Kepala>
 
@@ -145,13 +146,7 @@ export default function Dashboard({ email }) {
         <h1 className="sr">Halaman bendahara</h1>
         <div className="tata admin">
           <aside className="samping">
-            {ringkas && (
-              <section className="saldo kecil" aria-label="Saldo kas">
-                <p>Uang kas sekarang</p>
-                <strong>{rp(ringkas.saldo)}</strong>
-                <p className="akun">Masuk sebagai {email}</p>
-              </section>
-            )}
+            {ringkas && <Saldo r={ringkas} akun={'Masuk sebagai ' + email} />}
 
             <form className="panel form" onSubmit={simpan} noValidate>
               <h2 ref={formRef}>{edit ? 'Ubah catatan' : 'Catat transaksi'}</h2>
