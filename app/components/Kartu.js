@@ -7,12 +7,15 @@ export default function Kartu({ t, aksi }) {
   const masuk = t.tipe === 'masuk'
   return (
     <article className={'tx ' + t.tipe}>
-      <div className="tx-tgl">
-        <time dateTime={t.tanggal}>{tgl(t.tanggal)}</time>
-        <span className="tipe">{masuk ? '↑ Masuk' : '↓ Keluar'}</span>
-      </div>
+      <span className="ikon" aria-hidden="true">{masuk ? '↑' : '↓'}</span>
 
-      <div className="tx-jumlah">{(masuk ? '+ ' : '− ') + rp(t.jumlah)}</div>
+      <div className="tx-kanan">
+        <div className="tx-jumlah">
+          <span className="sr">{masuk ? 'Uang masuk ' : 'Uang keluar '}</span>
+          {(masuk ? '+ ' : '− ') + rp(t.jumlah)}
+        </div>
+        <time dateTime={t.tanggal}>{tgl(t.tanggal)}</time>
+      </div>
 
       <div className="tx-isi">
         <h3>{t.alasan}</h3>
