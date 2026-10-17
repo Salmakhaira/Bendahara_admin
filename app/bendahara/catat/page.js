@@ -3,9 +3,9 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
-import { rp, tgl, KATEGORI, hariIni, bulanIni, bulanLabel, geserBulan, rentangBulan, adalahBulan } from '../../../lib/format'
+import { rp, tgl, KATEGORI, hariIni } from '../../../lib/format'
 import { kecilkan } from '../../../lib/gambar'
-import { ambilAnggota, ambilSetoran } from '../../../lib/iuran'
+import { ambilAnggota, ambilProgram } from '../../../lib/program'
 import { ambilPengaturan } from '../../../lib/pengaturan'
 import { pesanTransaksi } from '../../../lib/wa'
 import Saldo from '../../components/Saldo'
@@ -13,9 +13,9 @@ import BagikanWa from '../../components/BagikanWa'
 
 const digit = (s) => s.replace(/\D/g, '').slice(0, 13)
 const titik = (s) => (s ? Number(s).toLocaleString('id-ID') : '')
-const KOSONG = () => ({
-  tipe: 'masuk', tanggal: hariIni(), jumlah: '', kategori: '', anggotaId: '', iuran: false,
-  periode: bulanIni(), dari: '', ke: '', alasan: '',
+const KOSONG = (programId = '') => ({
+  tipe: 'masuk', tanggal: hariIni(), jumlah: '', kategori: '', anggotaId: '', programId,
+  dari: '', ke: '', alasan: '',
 })
 
 export default function Halaman() {
@@ -35,8 +35,7 @@ function Form() {
   const [edit, setEdit] = useState(null)
   const [anggota, setAnggota] = useState([])
   const [siap, setSiap] = useState(false)
-  const [manual, setManual] = useState({ jumlah: false, alasan: false })
-  const [info, setInfo] = useState(null) // pembayaran iuran yang sudah ada untuk anggota + bulan terpilih
+  const [program, setProgram] = useState([])
   const [hapusBukti, setHapusBukti] = useState(false)
   const [pesan, setPesan] = useState(null)
   const [sukses, setSukses] = useState(null)
@@ -45,82 +44,50 @@ function Form() {
   const [ringkas, setRingkas] = useState(null)
   const [namaKas, setNamaKas] = useState('Kas Keluarga')
   const fileRef = useRef(null)
-  const prefilled = useRef(false)
 
   const masuk = form.tipe === 'masuk'
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const anggotaDipilih = anggota.find((a) => a.id === form.anggotaId)
+  const programDipilih = program.find((x) => x.id === form.programId)
 
   // ---- muat data awal ----
   useEffect(() => {
     (async () => {
-      const [a, r, p] = await Promise.all([
-        ambilAnggota(), supabase.from('ringkasan').select('*').single(), ambilPengaturan(),
+      const [a, r, p, pr] = await Promise.all([
+        ambilAnggota(), supabase.from('ringkasan').select('*').single(), ambilPengaturan(), ambilProgram(),
       ])
       if (!a.error) setAnggota(a.data)
+      if (!pr.error) setProgram(pr.data)
       if (!r.error) setRingkas(r.data)
       if (!p.error && p.data?.nama_kas) setNamaKas(p.data.nama_kas)
       if (ubahId) {
         const { data } = await supabase.from('transaksi').select('*').eq('id', ubahId).maybeSingle()
         if (data) {
           setEdit(data)
-          setManual({ jumlah: true, alasan: true })
           setForm({
             tipe: data.tipe, tanggal: data.tanggal, jumlah: String(data.jumlah), kategori: data.kategori ?? '',
-            anggotaId: data.anggota_id ?? '', iuran: !!data.periode, periode: data.periode ? String(data.periode).slice(0, 7) : bulanIni(),
+            anggotaId: data.anggota_id ?? '', programId: data.program_id ?? '',
             dari: data.dari ?? '', ke: data.ke ?? '', alasan: data.alasan,
           })
         } else setPesan({ jenis: 'err', teks: 'Catatan yang akan diubah tidak ditemukan.' })
+      } else if (sp.get('program') && pr.data?.some((x) => x.id === sp.get('program'))) {
+        setForm(KOSONG(sp.get('program')))
       }
       setSiap(true)
     })()
   }, [ubahId])
 
-  // ---- isi otomatis untuk iuran: nominal (sisa yang belum dibayar), uraian, kategori ----
-  async function terapkanIuran(f, manualNow = manual) {
-    const a = anggota.find((x) => x.id === f.anggotaId)
-    if (!a || !f.iuran) { setInfo(null); return {} }
-    const { data } = await ambilSetoran(f.periode, f.periode, a.id)
-    const sudah = (data ?? []).filter((s) => s.id !== edit?.id).reduce((t, s) => t + Number(s.jumlah), 0)
-    const kurang = Math.max(0, a.iuran_bulanan - sudah)
-    setInfo({ sudah, kurang })
-    const patch = {}
-    if (!manualNow.jumlah) patch.jumlah = String(kurang > 0 ? kurang : a.iuran_bulanan)
-    if (!manualNow.alasan) patch.alasan = 'Iuran ' + bulanLabel(f.periode)
-    if (!f.kategori || f.kategori === 'Iuran') patch.kategori = 'Iuran'
-    return patch
-  }
-
-  async function ganti(patch) {
-    const next = { ...form, ...patch }
-    setForm(next)
-    const tambahan = await terapkanIuran(next)
-    if (Object.keys(tambahan).length) setForm((f) => ({ ...f, ...tambahan }))
-  }
-
-  // dari tautan "Catat bayar" di halaman iuran: ?anggota=ID&bulan=YYYY-MM
-  useEffect(() => {
-    if (!siap || ubahId || prefilled.current) return
-    const id = sp.get('anggota')
-    const a = anggota.find((x) => x.id === id)
-    if (!a) return
-    prefilled.current = true
-    ganti({ tipe: 'masuk', anggotaId: a.id, dari: a.nama, iuran: a.iuran_bulanan > 0, periode: adalahBulan(sp.get('bulan')) ? sp.get('bulan') : bulanIni() })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siap, anggota])
-
   const pilihAnggota = (e) => {
     const a = anggota.find((x) => x.id === e.target.value)
-    ganti(a ? { anggotaId: a.id, dari: a.nama, iuran: a.iuran_bulanan > 0 } : { anggotaId: '', dari: '', iuran: false })
+    setForm((f) => ({ ...f, anggotaId: a ? a.id : '', dari: a ? a.nama : '' }))
   }
   const pilihJenis = (e) => {
     const tipe = e.target.value
     setInfo(null)
-    setForm((f) => ({ ...f, tipe, ...(tipe === 'keluar' ? { anggotaId: '', iuran: false } : {}) }))
+    setForm((f) => ({ ...f, tipe, ...(tipe === 'keluar' ? { anggotaId: '' } : {}) }))
   }
 
   function mulaiBaru() {
-    setEdit(null); setForm(KOSONG()); setInfo(null); setManual({ jumlah: false, alasan: false })
+    setEdit(null); setForm(KOSONG(form.programId))
     setHapusBukti(false); setKunciFile((k) => k + 1); setSukses(null); setPesan(null)
   }
 
@@ -137,9 +104,6 @@ function Form() {
       : !alasan ? 'Keperluan belum diisi.'
       : null
     if (galat) return setPesan({ jenis: 'err', teks: galat })
-    if (masuk && form.iuran && info && info.sudah > 0 && info.kurang === 0 &&
-        !window.confirm(`Iuran ${form.dari} untuk ${bulanLabel(form.periode)} sudah lunas (${rp(info.sudah)}).\nTetap catat pembayaran ini?`)) return
-
     setSibuk(true)
     setPesan({ jenis: 'info', teks: 'Menyimpan...' })
     let baru = null
@@ -160,7 +124,7 @@ function Form() {
         tipe: form.tipe, tanggal: form.tanggal, jumlah, kategori: form.kategori || null,
         dari: dari || null, ke: ke || null, alasan, bukti_path,
         anggota_id: adaAnggota ? form.anggotaId : null,
-        periode: adaAnggota && form.iuran ? form.periode + '-01' : null,
+        program_id: form.programId || null,
       }
       const q = edit
         ? supabase.from('transaksi').update(isi).eq('id', edit.id)
@@ -175,9 +139,9 @@ function Form() {
       if (edit) return router.push('/bendahara/catatan')
       const { data: r } = await supabase.from('ringkasan').select('*').single()
       if (r) setRingkas(r)
-      const dariIuran = !!sp.get('anggota')
+      const dariProgram = !!sp.get('program')
       mulaiBaru()
-      setSukses({ wa: pesanTransaksi({ namaKas, t: isi, saldo: r?.saldo ?? 0 }), dariIuran })
+      setSukses({ wa: pesanTransaksi({ namaKas, t: isi, saldo: r?.saldo ?? 0, program: program.find((x) => x.id === isi.program_id)?.nama }), dariProgram })
     } catch (err) {
       setPesan({ jenis: 'err', teks: err.message })
     } finally {
@@ -185,10 +149,6 @@ function Form() {
     }
   }
 
-  const bulanOpsi = (() => {
-    const l = rentangBulan(geserBulan(bulanIni(), -12), geserBulan(bulanIni(), 2)).reverse()
-    return l.includes(form.periode) ? l : [form.periode, ...l]
-  })()
   const pilihanAnggota = anggota.filter((a) => a.aktif || a.id === form.anggotaId)
 
   return (
@@ -197,7 +157,7 @@ function Form() {
       <div className="tata admin">
         <aside className="samping">
           {ringkas && <Saldo r={ringkas} />}
-          {sukses?.dariIuran && <Link className="btn garis blok" href="/bendahara/iuran">‹ Kembali ke daftar iuran</Link>}
+          {sukses?.dariProgram && <Link className="btn garis blok" href="/bendahara/program">‹ Kembali ke program</Link>}
         </aside>
 
         <div className="utama">
@@ -244,36 +204,19 @@ function Form() {
                 <input value={form.dari} onChange={set('dari')} autoComplete="off" />
               </label>
             )}
-            {masuk && form.anggotaId && (
-              <div className="kotak-iuran">
-                <label className="centang">
-                  <input type="checkbox" checked={form.iuran} onChange={(e) => ganti({ iuran: e.target.checked })} />
-                  Ini pembayaran iuran bulanan
-                </label>
-                {form.iuran && (
-                  <>
-                    <label className="f">Untuk bulan
-                      <select value={form.periode} onChange={(e) => ganti({ periode: e.target.value })}>
-                        {bulanOpsi.map((b) => <option key={b} value={b}>{bulanLabel(b)}</option>)}
-                      </select>
-                    </label>
-                    {info && (
-                      <p className={'petunjuk' + (info.kurang === 0 && info.sudah > 0 ? ' awas' : '')}>
-                        {info.sudah === 0
-                          ? `Belum ada pembayaran untuk ${bulanLabel(form.periode)}. Iuran ${rp(anggotaDipilih?.iuran_bulanan)}.`
-                          : info.kurang === 0
-                            ? `Sudah lunas (${rp(info.sudah)}). Pembayaran baru akan menjadi kelebihan.`
-                            : `Sudah dibayar ${rp(info.sudah)}, kurang ${rp(info.kurang)}.`}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
             {!masuk && (
               <label className="f">Untuk siapa <b className="wajib">wajib</b>
                 <input list="daftar-nama" value={form.ke} onChange={set('ke')} autoComplete="off" />
                 <datalist id="daftar-nama">{anggota.map((a) => <option key={a.id} value={a.nama} />)}</datalist>
+              </label>
+            )}
+
+            {program.length > 0 && (
+              <label className="f">Untuk program <small>(boleh dikosongkan)</small>
+                <select value={form.programId} onChange={set('programId')}>
+                  <option value="">Tanpa program (kas umum)</option>
+                  {program.filter((x) => x.status === 'aktif' || x.id === form.programId).map((x) => <option key={x.id} value={x.id}>{x.nama}{x.status === 'selesai' ? ' (selesai)' : ''}</option>)}
+                </select>
               </label>
             )}
 
@@ -285,7 +228,7 @@ function Form() {
                 <input
                   inputMode="numeric" autoComplete="off" placeholder="0" required
                   value={titik(form.jumlah)}
-                  onChange={(e) => { setManual((m) => ({ ...m, jumlah: true })); setForm((f) => ({ ...f, jumlah: digit(e.target.value) })) }}
+                  onChange={(e) => setForm((f) => ({ ...f, jumlah: digit(e.target.value) }))}
                 />
               </label>
             </div>
@@ -299,9 +242,10 @@ function Form() {
             </label>
 
             <label className="f">Keperluan <b className="wajib">wajib</b>
+                {programDipilih && !form.alasan && <small> contoh: Sumbangan untuk {programDipilih.nama}</small>}
               <input
                 value={form.alasan} autoComplete="off"
-                onChange={(e) => { setManual((m) => ({ ...m, alasan: true })); setForm((f) => ({ ...f, alasan: e.target.value })) }}
+                onChange={set('alasan')}
               />
             </label>
 

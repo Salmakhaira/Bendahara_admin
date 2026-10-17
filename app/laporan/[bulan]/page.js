@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { rp, tgl, bulanLabel, geserBulan, adalahBulan, waktu } from '../../../lib/format'
-import { ambilAnggota, ambilSetoran, statusBulan } from '../../../lib/iuran'
+import { ambilProgram, petaNama } from '../../../lib/program'
 import { ambilPengaturan } from '../../../lib/pengaturan'
 import { pesanRingkasan } from '../../../lib/wa'
 import Kepala from '../../components/Kepala'
@@ -17,12 +17,11 @@ export default async function LaporanBulan({ params }) {
   if (!adalahBulan(bulan)) notFound()
   const berikut = geserBulan(bulan, 1) + '-01'
 
-  const [semua, trx, anggota, setoran, pgn] = await Promise.all([
+  const [semua, trx, prog, pgn] = await Promise.all([
     supabase.from('ringkasan_bulanan').select('*').order('bulan', { ascending: true }),
     supabase.from('transaksi').select('*').gte('tanggal', bulan + '-01').lt('tanggal', berikut)
       .order('tanggal', { ascending: true }).order('dibuat_pada', { ascending: true }).limit(1000),
-    ambilAnggota(),
-    ambilSetoran(bulan, bulan),
+    ambilProgram(),
     ambilPengaturan(),
   ])
   if (semua.error || trx.error) notFound()
@@ -34,8 +33,15 @@ export default async function LaporanBulan({ params }) {
   const keluar = baris.filter((t) => t.tipe === 'keluar').reduce((s, t) => s + t.jumlah, 0)
   const akhir = awal + masuk - keluar
   const p = pgn.error ? null : pgn.data
-  const st = anggota.error ? null : statusBulan(anggota.data ?? [], setoran.data ?? [], bulan)
-  const belum = st ? st.baris.filter((b) => b.status !== 'lunas') : []
+  const namaProgram = petaNama(prog.data ?? [])
+  // ringkasan per program pada bulan ini
+  const perProgram = Object.values(baris.reduce((a, t) => {
+    if (!t.program_id) return a
+    const d = a[t.program_id] ?? { id: t.program_id, nama: namaProgram[t.program_id] ?? 'Program', masuk: 0, keluar: 0 }
+    d[t.tipe] += t.jumlah
+    a[t.program_id] = d
+    return a
+  }, {}))
   const sebelum = geserBulan(bulan, -1)
   const sesudah = geserBulan(bulan, 1)
   const ada = (b) => semua.data.some((x) => String(x.bulan).startsWith(b))
@@ -82,7 +88,7 @@ export default async function LaporanBulan({ params }) {
                       <td className="nowrap">{tgl(t.tanggal)}</td>
                       <td>
                         <b>{t.alasan}</b>
-                        <small>Dari {t.dari || 'Kas'} ke {t.ke || 'Kas'}{t.kategori ? ` · ${t.kategori}` : ''}</small>
+                        <small>Dari {t.dari || 'Kas'} ke {t.ke || 'Kas'}{t.program_id && namaProgram[t.program_id] ? ` · ${namaProgram[t.program_id]}` : t.kategori ? ` · ${t.kategori}` : ''}</small>
                       </td>
                       <td className="r m">{t.tipe === 'masuk' ? rp(t.jumlah) : ''}</td>
                       <td className="r k">{t.tipe === 'keluar' ? rp(t.jumlah) : ''}</td>
@@ -97,15 +103,19 @@ export default async function LaporanBulan({ params }) {
           )}
           {baris.length >= 1000 && <p className="hitung">Laporan hanya menampilkan 1000 transaksi pertama.</p>}
 
-          {st && st.jumlah > 0 && (
+          {perProgram.length > 0 && (
             <section>
-              <h2>Iuran bulan ini</h2>
-              <p>
-                <b>{st.lunas}</b> dari {st.jumlah} anggota sudah lunas. Terkumpul <b>{rp(st.terkumpul)}</b> dari target {rp(st.target)}.
-              </p>
-              {belum.length > 0 && (
-                <p><b>Belum lunas:</b> {belum.map((b) => b.nama).join(', ')}.</p>
-              )}
+              <h2>Per program bulan ini</h2>
+              <div className="gulir-x">
+                <table className="tabel">
+                  <thead><tr><th>Program</th><th className="r">Terkumpul</th><th className="r">Disalurkan</th></tr></thead>
+                  <tbody>
+                    {perProgram.map((d) => (
+                      <tr key={d.id}><td>{d.nama}</td><td className="r m">{rp(d.masuk)}</td><td className="r k">{rp(d.keluar)}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
           )}
 
@@ -125,7 +135,7 @@ export default async function LaporanBulan({ params }) {
           <CetakTombol label="Cetak / simpan sebagai PDF" kelas="btn" />
           <BagikanWa
             label="Bagikan ke WhatsApp"
-            teks={pesanRingkasan({ namaKas: p?.nama_kas, saldo: akhir, bulan, iuran: st }) .replace('Saldo kas saat ini', 'Saldo akhir ' + bulanLabel(bulan))}
+            teks={pesanRingkasan({ namaKas: p?.nama_kas, saldo: akhir }).replace('Saldo kas saat ini', 'Saldo akhir ' + bulanLabel(bulan))}
           />
           <a className="btn garis" href={`/export?bulan=${bulan}`}>Unduh CSV</a>
         </div>

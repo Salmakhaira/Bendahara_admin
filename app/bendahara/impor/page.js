@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../../lib/supabase'
-import { ambilAnggota } from '../../../lib/iuran'
+import { ambilAnggota, ambilProgram } from '../../../lib/program'
 import { parseCsv, siapkanBaris, CONTOH_CSV } from '../../../lib/csv'
 import { rp, tgl } from '../../../lib/format'
 
@@ -20,8 +20,8 @@ export default function Impor() {
     setPesan(null); setHasil(null)
     if (!file) return
     const teks = await file.text()
-    const { data: ang } = await ambilAnggota()
-    const h = siapkanBaris(parseCsv(teks), ang ?? [])
+    const [{ data: ang }, { data: prog }] = await Promise.all([ambilAnggota(), ambilProgram()])
+    const h = siapkanBaris(parseCsv(teks), ang ?? [], prog ?? [])
     setHasil(h)
     if (h.baris.length) {
       const { data } = await supabase.from('transaksi').select('tanggal,tipe,jumlah,alasan').limit(5000)
@@ -42,7 +42,7 @@ export default function Impor() {
     for (let i = 0; i < masuk.length; i += 100) {
       const potong = masuk.slice(i, i + 100).map((b) => ({
         tanggal: b.tanggal, tipe: b.tipe, jumlah: b.jumlah, dari: b.dari || null, ke: b.ke || null,
-        alasan: b.alasan, kategori: b.kategori || null, anggota_id: b.anggota_id || null, periode: b.periode || null,
+        alasan: b.alasan, kategori: b.kategori || null, anggota_id: b.anggota_id || null, program_id: b.program_id || null,
       }))
       const { error } = await supabase.from('transaksi').insert(potong)
       if (error) { setSibuk(false); return setPesan({ jenis: 'err', teks: `Berhenti setelah ${ok} catatan masuk: ${error.message}` }) }
@@ -62,7 +62,7 @@ export default function Impor() {
     <main className="wrap sempit">
       <div className="alat"><h1>Impor catatan lama</h1><Link className="btn kecil garis" href="/bendahara/kelola">‹ Kelola</Link></div>
       <section className="panel form">
-        <p>Pilih file CSV (dari Excel: Simpan sebagai CSV). Kolom wajib: tanggal, jumlah, keperluan. Kolom lain: jenis, dari, untuk, kategori, anggota, untuk bulan.</p>
+        <p>Pilih file CSV (dari Excel: Simpan sebagai CSV). Kolom wajib: tanggal, jumlah, keperluan. Kolom lain: jenis, dari, untuk, kategori, program (nama program yang sudah dibuat).</p>
         <div className="form-aksi"><button type="button" className="btn kecil garis" onClick={unduhContoh}>Unduh contoh file</button></div>
         <label className="f">File CSV<input type="file" accept=".csv,text/csv,text/plain" onChange={pilih} /></label>
       </section>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { rp, tgl, waktu, bulanLabel } from '../../lib/format'
+import { rp, tgl, waktu } from '../../lib/format'
+import { ambilProgram, petaNama } from '../../lib/program'
 import Kepala from '../components/Kepala'
 
 export const dynamic = 'force-dynamic'
@@ -9,15 +10,15 @@ export const metadata = { title: 'Riwayat perubahan — Kas Keluarga' }
 const NAMA = { tambah: 'Ditambahkan', ubah: 'Diubah', hapus: 'Dihapus' }
 const LABEL = {
   tanggal: 'Tanggal', tipe: 'Jenis', jumlah: 'Jumlah', dari: 'Dari', ke: 'Untuk',
-  alasan: 'Keperluan', kategori: 'Kategori', periode: 'Untuk bulan iuran', bukti_path: 'Bukti',
+  alasan: 'Keperluan', kategori: 'Kategori', program_id: 'Program', bukti_path: 'Bukti',
 }
 
-const tampil = (k, v) => {
+const tampil = (k, v, prog = {}) => {
   if (v === null || v === undefined || v === '') return '(kosong)'
   if (k === 'jumlah') return rp(v)
   if (k === 'tanggal') return tgl(v)
   if (k === 'tipe') return v === 'masuk' ? 'Uang masuk' : 'Uang keluar'
-  if (k === 'periode') return bulanLabel(v)
+  if (k === 'program_id') return prog[v] ?? 'program dihapus'
   if (k === 'bukti_path') return 'ada foto'
   return String(v)
 }
@@ -29,6 +30,8 @@ const beda = (a, b) =>
 export default async function Riwayat() {
   const { data, error } = await supabase
     .from('transaksi_log').select('*').order('waktu', { ascending: false }).limit(100)
+
+  const prog = petaNama((await ambilProgram()).data ?? [])
 
   return (
     <>
@@ -60,7 +63,7 @@ export default async function Riwayat() {
                   <ul>
                     {beda(l.data_lama, l.data_baru).map((k) => (
                       <li key={k}>
-                        {LABEL[k]}: {tampil(k, l.data_lama[k])} menjadi <b>{tampil(k, l.data_baru[k])}</b>
+                        {LABEL[k]}: {tampil(k, l.data_lama[k], prog)} menjadi <b>{tampil(k, l.data_baru[k], prog)}</b>
                       </li>
                     ))}
                   </ul>

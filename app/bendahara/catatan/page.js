@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { supabase } from '../../../lib/supabase'
 import { rp, tgl, bulanLabel } from '../../../lib/format'
 import { bacaFilter, terapkanFilter, urutan } from '../../../lib/query'
+import { ambilProgram, petaNama } from '../../../lib/program'
 import Kartu from '../../components/Kartu'
 
 const PER = 30
@@ -12,6 +13,7 @@ export default function CatatanAdmin() {
   const [isian, setIsian] = useState({ bulan: '', tipe: '', q: '' })
   const [filter, setFilter] = useState({ bulan: '', tipe: '', q: '' })
   const [bulanList, setBulanList] = useState([])
+  const [namaProgram, setNamaProgram] = useState({})
   const [daftar, setDaftar] = useState([])
   const [total, setTotal] = useState(0)
   const [batas, setBatas] = useState(PER)
@@ -28,6 +30,7 @@ export default function CatatanAdmin() {
   }, [filter, batas])
 
   useEffect(() => { muat() }, [muat])
+  useEffect(() => { ambilProgram().then(({ data }) => setNamaProgram(petaNama(data ?? []))) }, [])
   useEffect(() => {
     supabase.from('ringkasan_bulanan').select('bulan').order('bulan', { ascending: false })
       .then(({ data }) => setBulanList((data ?? []).map((b) => String(b.bulan).slice(0, 7))))
@@ -95,6 +98,7 @@ export default function CatatanAdmin() {
             <Kartu
               key={t.id}
               t={t}
+              program={namaProgram[t.program_id]}
               aksi={
                 <>
                   <Link className="btn kecil garis" href={`/bendahara/catat?ubah=${t.id}`}>Ubah</Link>

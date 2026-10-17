@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { rp, bulanLabel } from '../../lib/format'
 import { bacaFilter, terapkanFilter, urutan, qs } from '../../lib/query'
 import Kepala from '../components/Kepala'
+import { ambilProgram, petaNama } from '../../lib/program'
 import Kartu from '../components/Kartu'
 import CetakTombol from '../components/CetakTombol'
 import Saldo from '../components/Saldo'
@@ -15,13 +16,15 @@ export default async function Catatan({ searchParams }) {
   const filter = bacaFilter(searchParams)
   const batas = Math.min(Math.max(parseInt(searchParams?.batas) || PER_HALAMAN, PER_HALAMAN), 1000)
 
-  const [ringkas, bulanan, daftar] = await Promise.all([
+  const [ringkas, bulanan, daftar, prog] = await Promise.all([
     supabase.from('ringkasan').select('*').single(),
     supabase.from('ringkasan_bulanan').select('*').order('bulan', { ascending: true }),
     terapkanFilter(
       urutan(supabase.from('transaksi').select('*', { count: 'exact' })), filter
     ).limit(batas),
+    ambilProgram(),
   ])
+  const namaProgram = petaNama(prog.data ?? [])
 
   const gagal = ringkas.error || bulanan.error || daftar.error
   if (gagal) {
@@ -118,7 +121,7 @@ export default async function Catatan({ searchParams }) {
             <p className="hitung" aria-live="polite">Menampilkan {baris.length} dari {total} catatan</p>
 
             {baris.length > 0 ? (
-              <div className="buku">{baris.map((t) => <Kartu key={t.id} t={t} />)}</div>
+              <div className="buku">{baris.map((t) => <Kartu key={t.id} t={t} program={namaProgram[t.program_id]} />)}</div>
             ) : (
               <p className="kosong">{adaFilter ? 'Tidak ada catatan yang cocok. Coba ganti bulan atau kata kunci.' : 'Belum ada catatan.'}</p>
             )}

@@ -344,3 +344,19 @@ a.ang:hover{background:var(--primer-bg)}
 .baris-setor b{white-space:nowrap}
 .bulan-nav{justify-content:space-between}
 .tile-bulan{margin:.6rem 0 1rem}
+
+/* ---------- program (sumbangan sukarela) ---------- */
+.program-kartu{background:var(--kertas);border:1px solid var(--garis);border-radius:var(--r);padding:1rem 1.1rem;display:grid;gap:.5rem}
+.program-kartu h3 a{color:var(--tinta);text-decoration:none;font-size:1.15rem}
+.program-kartu h3 a:hover{color:var(--primer);text-decoration:underline}
+.program-ket{margin:0;font-size:.95rem}
+.angka-program{display:flex;gap:.4rem 1.6rem;flex-wrap:wrap;margin:.2rem 0 0}
+.angka-program div{display:grid}
+.angka-program dt{font-size:.8rem;color:var(--redup)}
+.angka-program dd{margin:0;font-weight:700}
+.angka-program.tegak{display:grid;gap:.6rem}
+.angka-program.tegak div{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid var(--garis);padding-top:.5rem}
+.donatur{list-style:none;margin:.6rem 0 0;padding:0;display:grid}
+.donatur li{display:flex;justify-content:space-between;gap:1rem;padding:.5rem 0;border-bottom:1px solid var(--garis)}
+.donatur li:last-child{border-bottom:0}
+.lencana.program{background:var(--masuk-bg);color:#0b5a2d}

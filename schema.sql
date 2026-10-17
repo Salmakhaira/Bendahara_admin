@@ -39,31 +39,46 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from admins where user_id = auth.uid());
 $$;
 
--- 2b. ANGGOTA & IURAN ----------------------------------------
--- Daftar anggota yang membayar iuran. `iuran_bulanan` = nominal per bulan
--- (0 = tidak wajib iuran). `mulai_iuran` = bulan pertama ia ditagih, supaya
--- bulan sebelum itu tidak dihitung "belum bayar".
+-- 2b. ANGGOTA & PROGRAM ---------------------------------------
+-- Kas ini bersifat SUKARELA: tidak ada iuran wajib. Uang masuk adalah sumbangan,
+-- uang keluar adalah penyaluran untuk hal-hal yang bermanfaat.
+--
+-- anggota : daftar nama keluarga (untuk memilih nama penyumbang, bukan tagihan).
+-- program : tujuan sumbangan, misalnya "Santunan sakit" atau "Renovasi musala".
+--           `target` boleh kosong (tanpa target). `status` = aktif / selesai.
 create table if not exists anggota (
   id uuid primary key default gen_random_uuid(),
   nama text not null check (length(trim(nama)) > 0),
-  iuran_bulanan bigint not null default 0 check (iuran_bulanan >= 0),
-  mulai_iuran date not null default date_trunc('month', now())::date,
   aktif boolean not null default true,
   catatan text,
   dibuat_pada timestamptz default now()
 );
 create unique index if not exists anggota_nama_unik on anggota (lower(nama));
 
--- Setiap pembayaran iuran ditandai: siapa (anggota_id) dan untuk bulan apa (periode).
+create table if not exists program (
+  id uuid primary key default gen_random_uuid(),
+  nama text not null check (length(trim(nama)) > 0),
+  deskripsi text,
+  target bigint check (target is null or target > 0),
+  status text not null default 'aktif' check (status in ('aktif', 'selesai')),
+  dibuat_pada timestamptz default now()
+);
+create unique index if not exists program_nama_unik on program (lower(nama));
+
+-- Setiap transaksi boleh ditandai: dari anggota mana (anggota_id) dan untuk program apa (program_id).
 alter table transaksi add column if not exists anggota_id uuid references anggota (id) on delete set null;
-alter table transaksi add column if not exists periode date;
-do $$ begin
-  if not exists (select 1 from pg_constraint where conname = 'transaksi_periode_awal_bulan') then
-    alter table transaksi add constraint transaksi_periode_awal_bulan
-      check (periode is null or periode = date_trunc('month', periode)::date);
-  end if;
-end $$;
-create index if not exists transaksi_iuran_idx on transaksi (anggota_id, periode);
+alter table transaksi add column if not exists program_id uuid references program (id) on delete set null;
+create index if not exists transaksi_program_idx on transaksi (program_id);
+
+alter table program enable row level security;
+drop policy if exists "semua boleh lihat program" on program;
+drop policy if exists "bendahara tambah program" on program;
+drop policy if exists "bendahara ubah program" on program;
+drop policy if exists "bendahara hapus program" on program;
+create policy "semua boleh lihat program" on program for select to anon, authenticated using (true);
+create policy "bendahara tambah program" on program for insert to authenticated with check (is_admin());
+create policy "bendahara ubah program" on program for update to authenticated using (is_admin()) with check (is_admin());
+create policy "bendahara hapus program" on program for delete to authenticated using (is_admin());
 
 alter table anggota enable row level security;
 drop policy if exists "semua boleh lihat anggota" on anggota;
@@ -83,7 +98,6 @@ create table if not exists pengaturan (
   bank text,
   no_rekening text,
   atas_nama text,
-  tanggal_jatuh_tempo int check (tanggal_jatuh_tempo between 1 and 28),
   info text,
   pengurus text
 );

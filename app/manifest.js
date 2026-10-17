@@ -2,7 +2,7 @@ export default function manifest() {
   return {
     name: 'Kas Keluarga',
     short_name: 'Kas Keluarga',
-    description: 'Catatan kas keluarga: saldo, iuran, pemasukan dan pengeluaran.',
+    description: 'Catatan kas keluarga: saldo, program sumbangan, pemasukan dan pengeluaran.',
     start_url: '/',
     display: 'standalone',
     background_color: '#f5f6fa',

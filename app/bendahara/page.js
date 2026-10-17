@@ -2,19 +2,18 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { bulanIni, bulanLabel, rp } from '../../lib/format'
 import { urutan } from '../../lib/query'
-import { ambilAnggota, ambilSetoran, statusBulan, NAMA_STATUS } from '../../lib/iuran'
+import { ambilAnggota, ambilProgram, ambilTrxProgram, hitungProgram, petaNama } from '../../lib/program'
 import { ambilPengaturan, adaInfoBayar } from '../../lib/pengaturan'
-import { pesanRingkasan, pesanPengingat } from '../../lib/wa'
+import { pesanRingkasan } from '../../lib/wa'
 import Saldo from '../components/Saldo'
 import Kartu from '../components/Kartu'
+import KartuProgram from '../components/KartuProgram'
 import BagikanWa from '../components/BagikanWa'
 import { useSesi } from './Sesi'
 
 export default function Ringkasan() {
   const { email } = useSesi()
-  const bulan = bulanIni()
   const [d, setD] = useState(null)
   const [galat, setGalat] = useState('')
 
@@ -23,30 +22,33 @@ export default function Ringkasan() {
       supabase.from('ringkasan').select('*').single(),
       urutan(supabase.from('transaksi').select('*')).limit(5),
       ambilAnggota(),
-      ambilSetoran(bulan, bulan),
+      ambilProgram(),
+      ambilTrxProgram(),
       ambilPengaturan(),
-    ]).then(([r, t, a, s, p]) => {
+    ]).then(([r, t, a, pr, trx, p]) => {
       if (r.error || t.error) return setGalat('Data gagal dimuat. Coba muat ulang halaman.')
-      // tabel iuran/pengaturan mungkin belum ada (schema.sql belum dijalankan ulang)
+      // tabel program/pengaturan mungkin belum ada (schema.sql belum dijalankan ulang)
       setD({
         ringkas: r.data,
         terbaru: t.data,
-        anggotaAda: !a.error,
+        adaTabel: !pr.error,
         anggota: a.error ? [] : a.data,
-        st: a.error ? null : statusBulan(a.data, s.data ?? [], bulan),
+        program: pr.error ? [] : pr.data.map((x) => ({ ...x, h: hitungProgram(x, trx.data ?? []) })),
         p: p.error ? null : p.data,
       })
     })
-  }, [bulan])
+  }, [])
 
   if (galat) return <main className="wrap sempit"><div className="notif err" role="alert">{galat}</div></main>
   if (!d) return <main className="wrap sempit"><p>Memuat...</p></main>
 
-  const { ringkas, terbaru, st, p, anggota, anggotaAda } = d
-  const tagih = st ? st.baris.filter((b) => b.status !== 'lunas').sort((a, b) => a.nama.localeCompare(b.nama, 'id')) : []
+  const { ringkas, terbaru, program, p, anggota, adaTabel } = d
+  const aktif = program.filter((x) => x.status === 'aktif')
+  const nama = petaNama(program)
   const langkah = [
-    [anggota.length > 0, 'Tambahkan anggota dan nominal iuran', '/bendahara/anggota'],
-    [adaInfoBayar(p), 'Isi info pembayaran (rekening, jatuh tempo)', '/bendahara/pengaturan'],
+    [program.length > 0, 'Buat program sumbangan pertama', '/bendahara/program'],
+    [adaInfoBayar(p), 'Isi info pembayaran (rekening)', '/bendahara/pengaturan'],
+    [anggota.length > 0, 'Tambahkan daftar nama keluarga', '/bendahara/anggota'],
     [terbaru.length > 0, 'Catat transaksi pertama atau impor catatan lama', '/bendahara/impor'],
   ]
   const baruMulai = langkah.some(([ok]) => !ok)
@@ -61,15 +63,15 @@ export default function Ringkasan() {
           <BagikanWa
             kelas="btn garis blok"
             label="Bagikan ringkasan ke WhatsApp"
-            teks={pesanRingkasan({ namaKas: p?.nama_kas, saldo: ringkas.saldo, bulan, iuran: st })}
+            teks={pesanRingkasan({ namaKas: p?.nama_kas, saldo: ringkas.saldo, program: aktif })}
           />
         </aside>
 
         <div className="utama tumpuk">
-          {(baruMulai || !anggotaAda) && (
+          {(baruMulai || !adaTabel) && (
             <section className="panel mulai">
               <h2>Langkah awal</h2>
-              {!anggotaAda && <div className="notif info">Fitur iuran belum aktif. Jalankan <code>schema.sql</code> terbaru di Supabase, lalu muat ulang halaman ini.</div>}
+              {!adaTabel && <div className="notif info">Fitur program belum aktif. Jalankan <code>schema.sql</code> terbaru di Supabase, lalu muat ulang halaman ini.</div>}
               <ul className="cek">
                 {langkah.map(([ok, teks, href]) => (
                   <li key={href} className={ok ? 'selesai' : ''}>
@@ -81,38 +83,20 @@ export default function Ringkasan() {
             </section>
           )}
 
-          {st && st.jumlah > 0 && (
-            <section className="panel" aria-label="Iuran bulan ini">
+          {aktif.length > 0 && (
+            <section aria-label="Program berjalan">
               <div className="alat">
-                <h2>Perlu ditagih · {bulanLabel(bulan)}</h2>
-                <Link className="btn kecil garis" href="/bendahara/iuran">Semua anggota</Link>
+                <h2>Program berjalan</h2>
+                <Link className="btn kecil garis" href="/bendahara/program">Kelola program</Link>
               </div>
-              <p className="besar"><b>{st.lunas}</b> dari {st.jumlah} anggota sudah lunas · terkumpul {rp(st.terkumpul)} dari {rp(st.target)}</p>
-              {tagih.length === 0 ? (
-                <p className="notif ok">Semua iuran bulan ini sudah lunas. 🎉</p>
-              ) : (
-                <>
-                  <div className="buku jarak">
-                    {tagih.slice(0, 8).map((b) => (
-                      <div key={b.id} className="ang tetap">
-                        <div className="ang-nama">
-                          <strong>{b.nama}</strong>
-                          <small>{b.status === 'sebagian' ? `Kurang ${rp(b.kurang)}` : `Iuran ${rp(b.iuran_bulanan)}`}</small>
-                        </div>
-                        <div className="ang-status"><span className={'chip ' + b.status}>{NAMA_STATUS[b.status]}</span></div>
-                        <Link className="btn kecil" href={`/bendahara/catat?anggota=${b.id}&bulan=${bulan}`}>Catat bayar</Link>
-                      </div>
-                    ))}
-                  </div>
-                  {tagih.length > 8 && <p className="hitung">dan {tagih.length - 8} anggota lainnya.</p>}
-                  <div className="alat-btn jarak">
-                    <BagikanWa
-                      label="Kirim pengingat ke WhatsApp"
-                      teks={pesanPengingat({ namaKas: p?.nama_kas, bulan, belum: tagih, info: adaInfoBayar(p) && p.no_rekening ? `Transfer ke ${p.bank ?? 'rekening'} ${p.no_rekening}${p.atas_nama ? ' a.n. ' + p.atas_nama : ''}` : '' })}
-                    />
-                  </div>
-                </>
-              )}
+              <div className="tumpuk jarak">
+                {aktif.slice(0, 4).map((x) => (
+                  <KartuProgram
+                    key={x.id} p={x} h={x.h} href={`/program/${x.id}`}
+                    aksi={<Link className="btn kecil" href={`/bendahara/catat?program=${x.id}`}>+ Catat sumbangan</Link>}
+                  />
+                ))}
+              </div>
             </section>
           )}
 
@@ -124,7 +108,7 @@ export default function Ringkasan() {
             {terbaru.length > 0 ? (
               <div className="buku jarak">
                 {terbaru.map((t) => (
-                  <Kartu key={t.id} t={t} aksi={<Link className="btn kecil garis" href={`/bendahara/catat?ubah=${t.id}`}>Ubah</Link>} />
+                  <Kartu key={t.id} t={t} program={nama[t.program_id]} aksi={<Link className="btn kecil garis" href={`/bendahara/catat?ubah=${t.id}`}>Ubah</Link>} />
                 ))}
               </div>
             ) : (

@@ -1,9 +1,10 @@
-import { rp, tgl, bulanLabel } from '../../lib/format'
+import { rp, tgl } from '../../lib/format'
 import { buktiUrl } from '../../lib/supabase'
 
 // Satu baris catatan (seperti baris buku kas).
+// `program` (opsional) = nama program tempat catatan ini ditandai.
 // `aksi` (opsional) = tombol tambahan untuk halaman bendahara.
-export default function Kartu({ t, aksi }) {
+export default function Kartu({ t, aksi, program }) {
   const masuk = t.tipe === 'masuk'
   return (
     <article className={'tx ' + t.tipe}>
@@ -22,13 +23,10 @@ export default function Kartu({ t, aksi }) {
         <p className="tx-pihak">
           Dari <b>{t.dari || 'Kas keluarga'}</b> ke <b>{t.ke || 'Kas keluarga'}</b>
         </p>
-        {(t.kategori || t.periode || t.bukti_path || t.diubah_pada) && (
+        {(t.kategori || program || t.bukti_path || t.diubah_pada) && (
           <div className="tx-meta">
-            {t.periode ? (
-              <span className="lencana">Iuran {bulanLabel(t.periode)}</span>
-            ) : (
-              t.kategori && <span className="lencana">{t.kategori}</span>
-            )}
+            {program && <span className="lencana program">{program}</span>}
+            {t.kategori && <span className="lencana">{t.kategori}</span>}
             {t.bukti_path && (
               <a href={buktiUrl(t.bukti_path)} target="_blank" rel="noreferrer">Lihat bukti transfer</a>
             )}

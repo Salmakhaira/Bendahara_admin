@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 
 const IKON = {
   beranda: <path d="M3 11l9-8 9 8M5.5 9.5V20h4.5v-6h4v6h4.5V9.5" />,
-  iuran: (<><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 5.3a3 3 0 010 5.7M18.3 14.4c1.7.8 2.7 2.5 2.7 5.1" /></>),
+  program: (<><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 5.3a3 3 0 010 5.7M18.3 14.4c1.7.8 2.7 2.5 2.7 5.1" /></>),
   catatan: (<><path d="M5 4h14v16H5z" /><path d="M8.5 9h7M8.5 13h7M8.5 17h4" /></>),
   laporan: (<><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M10 13h6M10 17h6" /></>),
   info: (<><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.6v.4" /></>),
@@ -17,14 +17,14 @@ const IKON = {
 const MENU = {
   keluarga: [
     ['/', 'Beranda', 'beranda'],
-    ['/iuran', 'Iuran', 'iuran'],
+    ['/program', 'Program', 'program'],
     ['/catatan', 'Catatan', 'catatan'],
     ['/laporan', 'Laporan', 'laporan', ['/riwayat']],
     ['/info', 'Info', 'info'],
   ],
   admin: [
     ['/bendahara', 'Ringkasan', 'ringkasan'],
-    ['/bendahara/iuran', 'Iuran', 'iuran'],
+    ['/bendahara/program', 'Program', 'program'],
     ['/bendahara/catat', 'Catat', 'catat'],
     ['/bendahara/catatan', 'Catatan', 'catatan'],
     ['/bendahara/kelola', 'Kelola', 'kelola', ['/bendahara/anggota', '/bendahara/pengaturan', '/bendahara/impor']],

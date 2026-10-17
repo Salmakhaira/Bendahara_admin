@@ -3,8 +3,9 @@ import Link from 'next/link'
 import { supabase } from '../../../lib/supabase'
 
 const KARTU = [
-  ['/bendahara/anggota', 'Anggota & iuran', 'Daftar anggota dan nominal iuran bulanan'],
-  ['/bendahara/pengaturan', 'Pengaturan', 'Rekening, jatuh tempo, nama kas'],
+  ['/bendahara/program', 'Program sumbangan', 'Tujuan sumbangan dan target dana'],
+  ['/bendahara/anggota', 'Daftar nama keluarga', 'Untuk memilih nama penyumbang dengan cepat'],
+  ['/bendahara/pengaturan', 'Pengaturan', 'Rekening, nama kas, pengurus'],
   ['/bendahara/impor', 'Impor catatan lama', 'Masukkan catatan dari file CSV/Excel'],
   ['/riwayat', 'Riwayat perubahan', 'Siapa mengubah apa dan kapan'],
   ['/', 'Lihat sebagai keluarga', 'Tampilan yang dilihat anggota'],
