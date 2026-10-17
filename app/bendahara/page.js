@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import Kepala from '../components/Kepala'
 import Dashboard from './Dashboard'
 
 // Gerbang: login -> pastikan akun terdaftar sebagai admin -> tampilkan dashboard
@@ -31,34 +32,47 @@ export default function Bendahara() {
       email: f.get('email').trim(), password: f.get('password'),
     })
     setSibuk(false)
-    setPesan(error ? 'Email atau kata sandi salah.' : '')
+    setPesan(error ? 'Email atau kata sandi salah. Periksa lagi lalu coba masuk kembali.' : '')
   }
 
-  if (sesi === undefined || (sesi && admin === undefined)) return <main><p>Memuat...</p></main>
+  if (sesi === undefined || (sesi && admin === undefined)) {
+    return <><Kepala /><main className="wrap sempit"><p>Memuat...</p></main></>
+  }
 
   if (!sesi) return (
-    <main>
-      <h1>Masuk bendahara</h1>
-      <form onSubmit={masuk}>
-        <label>Email<input name="email" type="email" autoComplete="username" required /></label>
-        <label>Kata sandi<input name="password" type="password" autoComplete="current-password" required /></label>
-        <button disabled={sibuk}>{sibuk ? 'Memeriksa...' : 'Masuk'}</button>
-        {pesan && <div className="notif err" role="alert">{pesan}</div>}
-      </form>
-      <p><Link href="/">Kembali ke halaman utama</Link></p>
-    </main>
+    <>
+      <Kepala><Link href="/">Kembali ke halaman utama</Link></Kepala>
+      <main className="wrap tengah">
+        <form className="panel masuk-kartu" onSubmit={masuk}>
+          <h1>Masuk bendahara</h1>
+          <p className="redup">Halaman ini khusus untuk mencatat dan mengubah kas.</p>
+          <label className="f">Email
+            <input name="email" type="email" autoComplete="username" required />
+          </label>
+          <label className="f">Kata sandi
+            <input name="password" type="password" autoComplete="current-password" required />
+          </label>
+          <button className="btn blok" disabled={sibuk}>{sibuk ? 'Memeriksa...' : 'Masuk'}</button>
+          {pesan && <div className="notif err" role="alert">{pesan}</div>}
+        </form>
+      </main>
+    </>
   )
 
   if (!admin) return (
-    <main>
-      <h1>Akun ini bukan bendahara</h1>
-      <div className="notif err" role="alert">
-        Akun <b>{sesi.user.email}</b> tidak terdaftar sebagai bendahara, jadi tidak bisa mengubah catatan.
-        Jika ini akun Anda, jalankan bagian terakhir <code>schema.sql</code> (daftarkan akun bendahara).
-      </div>
-      <button className="abu" onClick={() => supabase.auth.signOut()}>Keluar akun</button>
-      <p><Link href="/">Lihat halaman utama</Link></p>
-    </main>
+    <>
+      <Kepala><Link href="/">Halaman utama</Link></Kepala>
+      <main className="wrap tengah">
+        <div className="panel masuk-kartu">
+          <h1>Akun ini bukan bendahara</h1>
+          <div className="notif err" role="alert">
+            Akun <b>{sesi.user.email}</b> belum terdaftar sebagai bendahara, jadi tidak bisa mengubah catatan.
+            Jika ini akun Anda, jalankan bagian terakhir <code>schema.sql</code> di Supabase untuk mendaftarkannya.
+          </div>
+          <button className="btn garis blok" onClick={() => supabase.auth.signOut()}>Keluar akun</button>
+        </div>
+      </main>
+    </>
   )
 
   return <Dashboard email={sesi.user.email} />
