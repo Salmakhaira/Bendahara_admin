@@ -16,10 +16,8 @@ const IKON = {
 // [alamat, label, ikon, alamat lain yang ikut menandai menu ini]
 const MENU = {
   keluarga: [
-    ['/', 'Beranda', 'beranda'],
-    ['/program', 'Program', 'program'],
-    ['/catatan', 'Catatan', 'catatan'],
-    ['/laporan', 'Laporan', 'laporan', ['/riwayat']],
+    ['/', 'Beranda', 'beranda', ['/program']],
+    ['/catatan', 'Catatan', 'catatan', ['/laporan', '/riwayat']],
     ['/info', 'Info', 'info'],
   ],
   admin: [
@@ -32,7 +30,8 @@ const MENU = {
 }
 
 const aktif = (path, [href, , , lain = []]) => {
-  if (href === '/' || href === '/bendahara') return path === href
+  if (href === '/bendahara') return path === href
+  if (href === '/') return path === '/' || lain.some((h) => path === h || path.startsWith(h + '/'))
   return [href, ...lain].some((h) => path === h || path.startsWith(h + '/'))
 }
 

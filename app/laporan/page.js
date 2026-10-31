@@ -19,10 +19,10 @@ export default async function Laporan() {
   return (
     <>
       <Kepala />
-      <main className="wrap sempit">
+      <main className="wrap laporan-wrap">
         <h1>Laporan</h1>
         <p className="pengantar">
-          Laporan bulanan siap cetak atau disimpan sebagai PDF untuk dibagikan ke keluarga.
+          Rekap tiap bulan. Bisa dicetak atau disimpan sebagai PDF.
         </p>
 
         {error && <div className="notif err" role="alert">Laporan belum bisa dimuat. Coba muat ulang halaman.</div>}
@@ -40,10 +40,7 @@ export default async function Laporan() {
                 <div><dt>Keluar</dt><dd className="k">{rp(b.keluar)}</dd></div>
                 <div><dt>Saldo akhir</dt><dd>{rp(b.akhir)}</dd></div>
               </dl>
-              <div className="lap-aksi">
-                <Link className="btn kecil" href={`/laporan/${b.kunci}`}>Buka laporan</Link>
-                <a className="btn kecil garis" href={`/export?bulan=${b.kunci}`}>Unduh CSV</a>
-              </div>
+              <Link className="btn kecil lap-aksi" href={`/laporan/${b.kunci}`}>Buka laporan</Link>
             </article>
           ))}
         </div>

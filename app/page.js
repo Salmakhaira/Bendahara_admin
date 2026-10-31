@@ -3,20 +3,17 @@ import { supabase } from '../lib/supabase'
 import { urutan } from '../lib/query'
 import { ambilProgram, ambilTrxProgram, hitungProgram, petaNama } from '../lib/program'
 import { ambilPengaturan } from '../lib/pengaturan'
-import { pesanRingkasan } from '../lib/wa'
 import Kepala from './components/Kepala'
 import Kartu from './components/Kartu'
 import Saldo from './components/Saldo'
 import KartuProgram from './components/KartuProgram'
-import InfoBayar from './components/InfoBayar'
-import BagikanWa from './components/BagikanWa'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Beranda() {
   const [ringkas, terbaru, prog, trx, pgn] = await Promise.all([
     supabase.from('ringkasan').select('*').single(),
-    urutan(supabase.from('transaksi').select('*')).limit(6),
+    urutan(supabase.from('transaksi').select('*')).limit(8),
     ambilProgram(),
     ambilTrxProgram(),
     ambilPengaturan(),
@@ -45,50 +42,34 @@ export default async function Beranda() {
   return (
     <>
       <Kepala />
-      <main className="wrap">
+      <main className="wrap sempit">
         <h1 className="sr">Kas Keluarga</h1>
-        <div className="tata">
-          <aside className="samping">
-            <Saldo r={ringkas.data} />
-            <p className="jaminan">
-              Hanya bendahara yang bisa mengubah catatan. Setiap perubahan tercatat di{' '}
-              <Link href="/riwayat">riwayat perubahan</Link>.
-            </p>
-          </aside>
+        <div className="tumpuk">
+          <Saldo r={ringkas.data} />
 
-          <div className="utama tumpuk">
-            {aktif.length > 0 && (
-              <section aria-label="Program berjalan">
-                <div className="alat">
-                  <h2>Program berjalan</h2>
-                  <Link className="btn kecil garis" href="/program">Semua program</Link>
-                </div>
-                <div className="tumpuk jarak">
-                  {aktif.slice(0, 3).map((p) => <KartuProgram key={p.id} p={p} h={p.h} />)}
-                </div>
-              </section>
+          <section aria-label="Catatan terbaru">
+            <h2>Uang masuk dan keluar terbaru</h2>
+            {baris.length > 0 ? (
+              <div className="buku jarak">{baris.map((t) => <Kartu key={t.id} t={t} program={namaProgram[t.program_id]} />)}</div>
+            ) : (
+              <p className="kosong jarak">Belum ada catatan.</p>
             )}
-            <InfoBayar p={p} />
+            <Link className="btn blok besar" href="/catatan">Lihat semua catatan</Link>
+          </section>
 
-            <section aria-label="Catatan terbaru">
-              <div className="alat">
-                <h2>Catatan terbaru</h2>
-                <Link className="btn kecil garis" href="/catatan">Lihat semua</Link>
+          {aktif.length > 0 && (
+            <section aria-label="Program berjalan">
+              <h2>Program sumbangan</h2>
+              <div className="tumpuk jarak">
+                {aktif.slice(0, 3).map((p) => <KartuProgram key={p.id} p={p} h={p.h} />)}
               </div>
-              {baris.length > 0 ? (
-                <div className="buku jarak">{baris.map((t) => <Kartu key={t.id} t={t} program={namaProgram[t.program_id]} />)}</div>
-              ) : (
-                <p className="kosong jarak">Belum ada catatan.</p>
-              )}
             </section>
+          )}
 
-            <div className="alat-btn">
-              <BagikanWa
-                label="Bagikan ringkasan ke WhatsApp"
-                teks={pesanRingkasan({ namaKas: p?.nama_kas, saldo: ringkas.data?.saldo, program: aktif })}
-              />
-            </div>
-          </div>
+          <p className="jaminan">
+            Hanya bendahara yang bisa mengubah catatan. Setiap perubahan tercatat di{' '}
+            <Link href="/riwayat">riwayat perubahan</Link>.
+          </p>
         </div>
       </main>
     </>

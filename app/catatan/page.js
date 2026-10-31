@@ -5,8 +5,6 @@ import { bacaFilter, terapkanFilter, urutan, qs } from '../../lib/query'
 import Kepala from '../components/Kepala'
 import { ambilProgram, petaNama } from '../../lib/program'
 import Kartu from '../components/Kartu'
-import CetakTombol from '../components/CetakTombol'
-import Saldo from '../components/Saldo'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,75 +57,72 @@ export default async function Catatan({ searchParams }) {
   const lebih = baris.length < total
   const urlLebih = '/catatan' + qs({ ...filter, batas: batas + PER_HALAMAN })
 
+  const tabUrl = (tipe) => '/catatan' + qs({ ...filter, tipe })
+
   return (
     <>
       <Kepala />
-      <main className="wrap">
-        <h1 className="sr">Catatan kas</h1>
-        <div className="tata">
-          <aside className="samping">
-            <Saldo r={r} />
-            <p className="jaminan">
-              Hanya bendahara yang bisa mengubah catatan. Setiap perubahan tercatat di{' '}
-              <Link href="/riwayat">riwayat perubahan</Link>.
-            </p>
-          </aside>
+      <main className="wrap sempit">
+        <h1>Catatan kas</h1>
 
-          <div className="utama">
-            <form className="panel filter" method="get" action="/catatan">
-              <label className="f">Bulan
-                <select name="bulan" defaultValue={filter.bulan}>
-                  <option value="">Semua bulan</option>
-                  {[...bulanList].reverse().map((b) => (
-                    <option key={b.bulan} value={b.bulan.slice(0, 7)}>{bulanLabel(b.bulan)}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="f">Jenis
-                <select name="tipe" defaultValue={filter.tipe}>
-                  <option value="">Semua</option>
-                  <option value="masuk">Masuk</option>
-                  <option value="keluar">Keluar</option>
-                </select>
-              </label>
-              <label className="f cari">Cari
-                <input name="q" defaultValue={filter.q} maxLength={60} placeholder="Nama, keperluan, atau kategori" />
-              </label>
-              <div className="filter-aksi">
-                <button className="btn">Tampilkan</button>
-                {adaFilter && <Link className="btn garis" href="/catatan">Hapus pilihan</Link>}
-              </div>
-            </form>
+        <dl className="tiga" aria-label="Ringkasan kas">
+          <div><dt>Uang kas sekarang</dt><dd>{rp(r.saldo)}</dd></div>
+          <div className="m"><dt>Total masuk</dt><dd>{rp(r.total_masuk)}</dd></div>
+          <div className="k"><dt>Total keluar</dt><dd>{rp(r.total_keluar)}</dd></div>
+        </dl>
 
-            {bln && (
-              <section className="bulan" aria-label={'Ringkasan ' + bulanLabel(filter.bulan)}>
-                <h2>{bulanLabel(filter.bulan)}</h2>
-                <dl>
-                  <div><dt>Saldo awal</dt><dd>{rp(bln.awal)}</dd></div>
-                  <div className="m"><dt>Uang masuk</dt><dd>+ {rp(bln.masuk)}</dd></div>
-                  <div className="k"><dt>Uang keluar</dt><dd>− {rp(bln.keluar)}</dd></div>
-                  <div className="akhir"><dt>Saldo akhir</dt><dd>{rp(bln.akhir)}</dd></div>
-                </dl>
-              </section>
-            )}
+        <nav className="tab-jenis" aria-label="Pilih jenis catatan">
+          <Link href={tabUrl('')} className={!filter.tipe ? 'on' : ''} aria-current={!filter.tipe ? 'page' : undefined}>Semua</Link>
+          <Link href={tabUrl('masuk')} className={'masuk' + (filter.tipe === 'masuk' ? ' on' : '')} aria-current={filter.tipe === 'masuk' ? 'page' : undefined}>Uang masuk</Link>
+          <Link href={tabUrl('keluar')} className={'keluar' + (filter.tipe === 'keluar' ? ' on' : '')} aria-current={filter.tipe === 'keluar' ? 'page' : undefined}>Uang keluar</Link>
+        </nav>
 
-            <div className="alat">
-              <h2>{adaFilter ? 'Hasil pencarian' : 'Catatan terbaru'}</h2>
-              <div className="alat-btn">
-                <a className="btn kecil garis" href={'/export' + qs(filter)}>Unduh CSV</a>
-                <CetakTombol />
-              </div>
+        <details className="panel pilih-lanjut" open={!!(filter.bulan || filter.q)}>
+          <summary>Pilih bulan atau cari nama</summary>
+          <form method="get" action="/catatan" className="filter">
+            <input type="hidden" name="tipe" value={filter.tipe} />
+            <label className="f">Bulan
+              <select name="bulan" defaultValue={filter.bulan}>
+                <option value="">Semua bulan</option>
+                {[...bulanList].reverse().map((b) => (
+                  <option key={b.bulan} value={b.bulan.slice(0, 7)}>{bulanLabel(b.bulan)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="f cari">Cari nama atau keperluan
+              <input name="q" defaultValue={filter.q} maxLength={60} placeholder="Contoh: Wening" />
+            </label>
+            <div className="filter-aksi">
+              <button className="btn">Tampilkan</button>
+              {adaFilter && <Link className="btn garis" href="/catatan">Hapus pilihan</Link>}
             </div>
-            <p className="hitung" aria-live="polite">Menampilkan {baris.length} dari {total} catatan</p>
+          </form>
+        </details>
 
-            {baris.length > 0 ? (
-              <div className="buku">{baris.map((t) => <Kartu key={t.id} t={t} program={namaProgram[t.program_id]} />)}</div>
-            ) : (
-              <p className="kosong">{adaFilter ? 'Tidak ada catatan yang cocok. Coba ganti bulan atau kata kunci.' : 'Belum ada catatan.'}</p>
-            )}
-            {lebih && <Link className="btn garis blok" href={urlLebih} scroll={false}>Tampilkan lebih banyak</Link>}
-          </div>
-        </div>
+        {bln && (
+          <section className="bulan" aria-label={'Ringkasan ' + bulanLabel(filter.bulan)}>
+            <h2>{bulanLabel(filter.bulan)}</h2>
+            <dl>
+              <div><dt>Saldo awal</dt><dd>{rp(bln.awal)}</dd></div>
+              <div className="m"><dt>Uang masuk</dt><dd>+ {rp(bln.masuk)}</dd></div>
+              <div className="k"><dt>Uang keluar</dt><dd>− {rp(bln.keluar)}</dd></div>
+              <div className="akhir"><dt>Saldo akhir</dt><dd>{rp(bln.akhir)}</dd></div>
+            </dl>
+            <Link className="btn kecil garis jarak" href={`/laporan/${filter.bulan}`}>Buka laporan {bulanLabel(filter.bulan)}</Link>
+          </section>
+        )}
+
+        <h2 className="sub">{adaFilter ? 'Hasil' : 'Semua catatan'}</h2>
+        <p className="hitung" aria-live="polite">Menampilkan {baris.length} dari {total} catatan</p>
+
+        {baris.length > 0 ? (
+          <div className="buku">{baris.map((t) => <Kartu key={t.id} t={t} program={namaProgram[t.program_id]} />)}</div>
+        ) : (
+          <p className="kosong">{adaFilter ? 'Tidak ada catatan yang cocok. Coba ganti bulan atau kata kunci.' : 'Belum ada catatan.'}</p>
+        )}
+        {lebih && <Link className="btn garis blok besar" href={urlLebih} scroll={false}>Tampilkan lebih banyak</Link>}
+
+        <p className="jarak"><Link href="/laporan">Laporan per bulan (untuk dicetak)</Link></p>
       </main>
     </>
   )
