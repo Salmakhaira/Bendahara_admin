@@ -311,7 +311,7 @@ a.ang:hover{background:var(--primer-bg)}
   .tx .ikon{background:#eee!important;color:#000!important}
   .tx.masuk .tx-jumlah,.tx.keluar .tx-jumlah,.dua .m dd,.dua .k dd{color:#000}
 }
-@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 /* ---------- perbaikan tampilan HP ---------- */
 .rekening{display:flex;align-items:center;justify-content:space-between;gap:.6rem 1rem;flex-wrap:wrap}
@@ -361,3 +361,10 @@ a.ang:hover{background:var(--primer-bg)}
 .donatur li:last-child{border-bottom:0}
 .lencana.program{background:var(--masuk-bg);color:#0b5a2d}
 .panel.form,.panel{min-width:0}
+
+/* ---------- kerangka pemuatan ---------- */
+.rangka{display:grid;gap:1rem;max-width:48rem;margin:1rem auto}
+.rangka-blok{height:5rem;border-radius:var(--r);background:linear-gradient(90deg,var(--garis) 25%,#eef0f6 50%,var(--garis) 75%);background-size:200% 100%;animation:kilau 1.4s linear infinite}
+.rangka-blok.besar{height:9rem}
+@keyframes kilau{to{background-position:-200% 0}}
+.gulir-x:focus-visible{outline:.25rem solid var(--fokus);outline-offset:2px}

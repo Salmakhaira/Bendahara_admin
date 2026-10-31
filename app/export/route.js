@@ -39,7 +39,7 @@ export async function GET(req) {
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="kas-keluarga.csv"',
+      'Content-Disposition': `attachment; filename="kas-keluarga${filter.bulan ? '-' + filter.bulan : ''}-${new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}.csv"`,
       'Cache-Control': 'no-store',
     },
   })

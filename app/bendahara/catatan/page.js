@@ -94,6 +94,7 @@ export default function CatatanAdmin() {
 
       {daftar.length > 0 ? (
         <div className="buku">
+          <h2 className="sr">Daftar catatan</h2>
           {daftar.map((t) => (
             <Kartu
               key={t.id}

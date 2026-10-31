@@ -11,6 +11,7 @@ const kunci = (t) => [t.tanggal, t.tipe, Number(t.jumlah), (t.alasan ?? '').trim
 export default function Impor() {
   const [mentah, setMentah] = useState(null) // { tabel, mulai, namaSheet, ang, prog }
   const [tebak, setTebak] = useState(true)
+  const [semuaBaris, setSemuaBaris] = useState(false)
   const [dobel, setDobel] = useState(new Set())
   const [lewati, setLewati] = useState(true)
   const [pesan, setPesan] = useState(null)
@@ -42,8 +43,14 @@ export default function Impor() {
     const [{ data: ang }, { data: prog }] = await Promise.all([ambilAnggota(), ambilProgram()])
     setMentah({ tabel, mulai, namaSheet, ang: ang ?? [], prog: prog ?? [] })
     if (tabel.length > 1) {
-      const { data } = await supabase.from('transaksi').select('tanggal,tipe,jumlah,alasan').limit(5000)
-      setDobel(new Set((data ?? []).map(kunci)))
+      // baca semua catatan yang sudah ada (per 1000 baris, batas bawaan Supabase) untuk deteksi dobel
+      const ada = new Set()
+      for (let dari = 0; dari < 50000; dari += 1000) {
+        const { data } = await supabase.from('transaksi').select('tanggal,tipe,jumlah,alasan').order('id').range(dari, dari + 999)
+        ;(data ?? []).forEach((t) => ada.add(kunci(t)))
+        if (!data || data.length < 1000) break
+      }
+      setDobel(ada)
     }
   }
 
@@ -67,7 +74,7 @@ export default function Impor() {
         alasan: b.alasan, kategori: b.kategori || null, anggota_id: b.anggota_id || null, program_id: b.program_id || null,
       }))
       const { error } = await supabase.from('transaksi').insert(potong)
-      if (error) { setSibuk(false); return setPesan({ jenis: 'err', teks: `Berhenti setelah ${ok} catatan masuk: ${error.message}` }) }
+      if (error) { setSibuk(false); return setPesan({ jenis: 'err', teks: `Berhenti setelah ${ok} catatan masuk: ${error.message}. Pilih file yang sama lagi untuk melanjutkan: baris yang sudah masuk ditandai "Sudah ada?" dan dilewati.` }) }
       ok += potong.length
     }
     setSibuk(false); setMentah(null)
@@ -93,7 +100,7 @@ export default function Impor() {
       </section>
       <section className="panel">
         <h2>Kolom di template masuk ke mana</h2>
-        <div className="gulir-x">
+        <div className="gulir-x" tabIndex={0} role="region" aria-label="Pemetaan kolom template">
           <table className="tabel">
             <thead><tr><th>Kolom</th><th>Masuk ke</th></tr></thead>
             <tbody>
@@ -129,11 +136,11 @@ export default function Impor() {
           </label>
           <p><b>{valid.length}</b> baris benar{baris.length - valid.length > 0 && <>, <b>{baris.length - valid.length}</b> bermasalah (dilewati)</>}{kembar.length > 0 && <>, <b>{kembar.length}</b> tampak sudah ada</>}.</p>
           {kembar.length > 0 && <label className="centang"><input type="checkbox" checked={lewati} onChange={(e) => setLewati(e.target.checked)} /> Lewati yang tampak sudah ada</label>}
-          <div className="gulir-x">
+          <div className="gulir-x" tabIndex={0} role="region" aria-label="Pratinjau data impor">
             <table className="tabel">
               <thead><tr><th>#</th><th>Tanggal</th><th>Jenis</th><th className="r">Jumlah</th><th>Dari</th><th>Untuk</th><th>Kategori</th><th>Keperluan</th><th>Status</th></tr></thead>
               <tbody>
-                {baris.slice(0, 50).map((b) => (
+                {baris.slice(0, semuaBaris ? 2000 : 50).map((b) => (
                   <tr key={b.no}>
                     <td>{b.no}</td><td className="nowrap">{b.tanggal ? tgl(b.tanggal) : '-'}</td><td>{b.tipe ?? '-'}</td>
                     <td className="r nowrap">{b.jumlah ? rp(b.jumlah) : '-'}</td><td>{b.dari ?? ''}</td><td>{b.ke ?? ''}</td><td>{b.kategori ?? ''}</td><td>{b.alasan}</td>
@@ -143,7 +150,12 @@ export default function Impor() {
               </tbody>
             </table>
           </div>
-          {baris.length > 50 && <p className="hitung">Menampilkan 50 dari {baris.length} baris.</p>}
+          {baris.length > 50 && (
+            <p className="hitung">
+              Menampilkan {Math.min(baris.length, semuaBaris ? 2000 : 50)} dari {baris.length} baris.{' '}
+              <button type="button" className="btn kecil garis" onClick={() => setSemuaBaris(!semuaBaris)}>{semuaBaris ? 'Tampilkan 50 saja' : 'Tampilkan semua'}</button>
+            </p>
+          )}
           <button type="button" className="btn blok besar jarak" disabled={!masuk.length || sibuk} onClick={impor}>{sibuk ? 'Mengimpor...' : `Impor ${masuk.length} catatan`}</button>
         </section>
       )}

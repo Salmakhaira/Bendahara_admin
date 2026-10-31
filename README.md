@@ -47,6 +47,13 @@ Kas ini **sukarela**: tidak ada iuran wajib atau tagihan. Uang masuk adalah sumb
 ### Catatan privasi
 Nama penyumbang dan jumlahnya bisa dibaca siapa pun yang memegang tautan situs (sama seperti catatan kas). Jangan isi data sensitif di kolom catatan.
 
+## Perawatan
+
+- **Tes otomatis**: `npm install` lalu `npm test` (17 tes untuk pembaca impor, filter, ringkasan program, riwayat, dan pesan WhatsApp). Tidak butuh koneksi Supabase.
+- **Supabase paket gratis dijeda bila lama tidak aktif.** File `vercel.json` menjadwalkan panggilan harian ke `/api/ping` supaya project tetap aktif. Jika situs tiba-tiba kosong, buka dashboard Supabase dan tekan *Restore*.
+- **Cadangan**: Kelola > Unduh cadangan menghasilkan CSV yang bisa diimpor kembali lewat Kelola > Impor.
+- **Impor ratusan baris** muncul di Riwayat sebagai satu entri gabungan, bukan ratusan baris.
+
 ## Keamanan
 
 - Hak ubah dijaga di **database** (Row Level Security + tabel `admins`), bukan hanya disembunyikan di tampilan.

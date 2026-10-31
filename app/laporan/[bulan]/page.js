@@ -77,7 +77,7 @@ export default async function LaporanBulan({ params }) {
           {baris.length === 0 ? (
             <p className="kosong">Tidak ada transaksi pada bulan ini.</p>
           ) : (
-            <div className="gulir-x">
+            <div className="gulir-x" tabIndex={0} role="region" aria-label="Ringkasan per program">
               <table className="tabel rincian">
                 <thead>
                   <tr><th>Tanggal</th><th>Uraian</th><th className="r">Masuk</th><th className="r">Keluar</th></tr>
@@ -106,7 +106,7 @@ export default async function LaporanBulan({ params }) {
           {perProgram.length > 0 && (
             <section>
               <h2>Per program bulan ini</h2>
-              <div className="gulir-x">
+              <div className="gulir-x" tabIndex={0} role="region" aria-label="Rincian transaksi bulan ini">
                 <table className="tabel">
                   <thead><tr><th>Program</th><th className="r">Terkumpul</th><th className="r">Disalurkan</th></tr></thead>
                   <tbody>
